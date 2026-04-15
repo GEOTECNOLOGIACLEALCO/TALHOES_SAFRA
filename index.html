@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <title>Clealco Geo - Monitoramento Completo</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #000; overflow: hidden; }
+        #map { height: 100vh; width: 100%; }
+
+        .ui-panel {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.98); padding: 25px;
+            border-radius: 15px; width: 300px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            max-height: 85vh; overflow-y: auto;
+        }
+        h2 { margin: 0 0 15px; font-size: 18px; color: #1b5e20; border-bottom: 2px solid #81c784; padding-bottom: 5px; }
+        .label-ui { font-size: 10px; font-weight: 700; color: #888; margin-top: 15px; text-transform: uppercase; }
+
+        select, .btn-group { width: 100%; margin-top: 8px; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 4px; }
+        .btn-group label { 
+            flex: 1 1 30%; background: #f0f0f0; padding: 8px 4px; text-align: center; 
+            border-radius: 6px; font-size: 10px; cursor: pointer; font-weight: 600; border: 1px solid #ddd;
+        }
+        .btn-group input { display: none; }
+        .btn-group input:checked + label { background: #1b5e20; color: #fff; border-color: #1b5e20; }
+
+        .logo-clealco { position: absolute; top: 20px; right: 20px; z-index: 1000; width: 150px; }
+        .footer { position: absolute; bottom: 10px; right: 20px; z-index: 1000; font-size: 10px; color: rgba(255,255,255,0.4); pointer-events: none; }
+
+        /* Legenda Flutuante */
+        .legend-box { margin-top: 20px; padding: 12px; background: #fff; border-radius: 8px; font-size: 11px; border: 1px solid #eee; display: none; }
+        .leg-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .leg-color { width: 14px; height: 14px; margin-right: 10px; border-radius: 3px; border: 1px solid #000; }
+
+        .popup-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+        .popup-table tr { border-bottom: 1px solid #eee; }
+        .popup-table b { color: #1b5e20; font-size: 10px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <img src="https://www.clealco.com.br/assets/images/logo-footer.png" class="logo-clealco">
+    <div class="footer">Desenvolvido por Geotecnologia Clealco</div>
+
+    <div class="ui-panel">
+        <h2>Painel de Gestão</h2>
+        
+        <div class="label-ui">Monitoramento Satélite</div>
+        <div class="btn-group">
+            <input type="radio" id="mNdvi" name="viewMode" value="ndvi" checked>
+            <label for="mNdvi">NDVI</label>
+            <input type="radio" id="mReal" name="viewMode" value="real">
+            <label for="mReal">REAL</label>
+        </div>
+        <select id="dateSelect"></select>
+
+        <div class="label-ui">Mapas Temáticos</div>
+        <div class="btn-group">
+            <input type="radio" id="tNone" name="viewMode" value="none">
+            <label for="tNone">LIMPO</label>
+            <input type="radio" id="tEst" name="viewMode" value="ESTAGIO">
+            <label for="tEst">ESTÁGIO</label>
+            <input type="radio" id="tSta" name="viewMode" value="STATUS">
+            <label for="tSta">STATUS</label>
+            <input type="radio" id="tFaz" name="viewMode" value="TP_FAZ">
+            <label for="tFaz">FAZENDAS</label>
+        </div>
+
+        <div id="dynamicLegend" class="legend-box">
+            <b>Legenda do Tema</b>
+            <div id="legendList" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+    <script src="config.js"></script>
+    <script>
+        var map = L.map('map', {zoomControl: false}).setView([-21.2, -50.4], 12);
+        L.control.zoom({position: 'bottomleft'}).addTo(map);
+        
+        // Fundo Google Hybrid
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
+
+        // Adicionar Localização do Dispositivo (GPS)
+        L.control.locate({
+            position: 'bottomleft',
+            strings: { title: "Minha Localização" },
+            locateOptions: { enableHighAccuracy: true }
+        }).addTo(map);
+
+        var satLayer = null;
+        var vectorLayer = null;
+
+        // --- PALETA VIVID ---
+        const cores = {
+            'ESTAGIO': { 
+                '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', 
+                '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' 
+            },
+            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO 26': '#76FF03', 'MUDA': '#FF1493' },
+            'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' },
+            'ndvi': { 'Muito Alta': '#08306b', 'Alta': '#1a9641', 'Média': '#ffffbf', 'Baixa': '#fdae61', 'Solo ou nuvem': '#d7191c' }
+        };
+
+        function getStyle(feature) {
+            const mode = document.querySelector('input[name="viewMode"]:checked').value;
+            let style = { color: "#000000", weight: 2.2, fillColor: 'transparent', fillOpacity: 0 };
+            if (cores[mode]) {
+                const val = (feature.properties[mode] || "").toString().toUpperCase().trim();
+                if (cores[mode][val]) {
+                    style.fillColor = cores[mode][val];
+                    style.fillOpacity = 0.85;
+                }
+            }
+            return style;
+        }
+
+        function updateLegend(mode) {
+            const box = document.getElementById('dynamicLegend');
+            const list = document.getElementById('legendList');
+            list.innerHTML = "";
+            
+            let target = (mode === 'ndvi' || mode === 'real') ? 'ndvi' : mode;
+            const items = cores[target];
+
+            if (items && mode !== 'none') {
+                box.style.display = 'block';
+                for (let k in items) {
+                    list.innerHTML += `<div class="leg-item"><div class="leg-color" style="background:${items[k]}"></div>${k}</div>`;
+                }
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
+        function refresh() {
+            const mode = document.querySelector('input[name="viewMode"]:checked').value;
+            if (satLayer) map.removeLayer(satLayer);
+            if (mode === 'ndvi' || mode === 'real') {
+                const item = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
+                if (item) satLayer = L.tileLayer(item[mode]).addTo(map);
+            }
+            if (vectorLayer) vectorLayer.setStyle(getStyle);
+            updateLegend(mode);
+        }
+
+        // Datas
+        const sel = document.getElementById('dateSelect');
+        if (typeof galeriaImagens !== 'undefined') {
+            galeriaImagens.forEach(i => { 
+                let o = document.createElement('option'); o.value = i.data; o.text = `${i.nome_mes} (${i.data})`; sel.appendChild(o); 
+            });
+        }
+
+        // Talhões
+        if (typeof talhoesData !== 'undefined') {
+            vectorLayer = L.geoJSON(talhoesData, {
+                style: getStyle,
+                onEachFeature: function (feature, layer) {
+                    let t = "<table class='popup-table'>";
+                    for (let k in feature.properties) {
+                        if (!['ID', 'FID', 'PK', 'OBJECTID'].includes(k.toUpperCase())) {
+                            t += `<tr><td><b>${k}:</b></td><td>${feature.properties[k]}</td></tr>`;
+                        }
+                    }
+                    layer.bindPopup(t + "</table>");
+                    if (feature.properties.TALHAO) {
+                        L.marker(layer.getBounds().getCenter(), {
+                            icon: L.divIcon({ className: 'l', html: `<span style="color:white; font-weight:bold; text-shadow: 1px 1px 2px #000; font-size:10px;">${feature.properties.TALHAO}</span>`, iconSize: [30, 10]})
+                        }).addTo(map);
+                    }
+                }
+            }).addTo(map);
+        }
+
+        document.querySelectorAll('input[name="viewMode"]').forEach(r => r.onchange = refresh);
+        sel.onchange = refresh;
+        refresh();
+    </script>
+</body>
+</html>
