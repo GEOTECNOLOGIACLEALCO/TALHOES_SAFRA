@@ -1,53 +1,78 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Clealco Geo - Monitoramento Completo</title>
+    <title>Clealco Geo - Mobile Pro</title>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
         body { margin: 0; font-family: 'Inter', sans-serif; background: #000; overflow: hidden; }
-        #map { height: 100vh; width: 100%; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
 
+        /* Painel Retrátil */
         .ui-panel {
-            position: absolute; top: 20px; left: 20px; z-index: 1000;
-            background: rgba(255, 255, 255, 0.98); padding: 25px;
-            border-radius: 15px; width: 300px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            position: absolute; top: 10px; left: 10px; z-index: 1001;
+            background: rgba(255, 255, 255, 0.98); padding: 15px;
+            border-radius: 12px; width: 260px; box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             max-height: 85vh; overflow-y: auto;
         }
-        h2 { margin: 0 0 15px; font-size: 18px; color: #1b5e20; border-bottom: 2px solid #81c784; padding-bottom: 5px; }
-        .label-ui { font-size: 10px; font-weight: 700; color: #888; margin-top: 15px; text-transform: uppercase; }
 
-        select, .btn-group { width: 100%; margin-top: 8px; }
+        .ui-panel.hidden { transform: translateX(-320px); opacity: 0; pointer-events: none; }
+
+        .toggle-btn {
+            position: absolute; top: 15px; left: 15px; z-index: 1002;
+            background: #1b5e20; color: white; border: none;
+            padding: 12px 15px; border-radius: 8px; cursor: pointer;
+            font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        h2 { margin: 0 0 10px; font-size: 16px; color: #1b5e20; border-bottom: 2px solid #81c784; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .close-menu { cursor: pointer; color: #666; font-size: 20px; padding: 5px; }
+
+        .label-ui { font-size: 9px; font-weight: 700; color: #888; margin-top: 12px; text-transform: uppercase; }
+
+        select, .btn-group { width: 100%; margin-top: 5px; }
         .btn-group { display: flex; flex-wrap: wrap; gap: 4px; }
         .btn-group label { 
-            flex: 1 1 30%; background: #f0f0f0; padding: 8px 4px; text-align: center; 
+            flex: 1 1 30%; background: #f0f0f0; padding: 10px 2px; text-align: center; 
             border-radius: 6px; font-size: 10px; cursor: pointer; font-weight: 600; border: 1px solid #ddd;
         }
         .btn-group input { display: none; }
         .btn-group input:checked + label { background: #1b5e20; color: #fff; border-color: #1b5e20; }
 
-        .logo-clealco { position: absolute; top: 20px; right: 20px; z-index: 1000; width: 150px; }
-        .footer { position: absolute; bottom: 10px; right: 20px; z-index: 1000; font-size: 10px; color: rgba(255,255,255,0.4); pointer-events: none; }
+        .logo-clealco { position: absolute; top: 10px; right: 10px; z-index: 1000; width: 100px; opacity: 0.9; }
+        .footer { position: absolute; bottom: 5px; right: 10px; z-index: 1000; font-size: 8px; color: rgba(255,255,255,0.4); }
 
-        /* Legenda Flutuante */
-        .legend-box { margin-top: 20px; padding: 12px; background: #fff; border-radius: 8px; font-size: 11px; border: 1px solid #eee; display: none; }
-        .leg-item { display: flex; align-items: center; margin-bottom: 5px; }
-        .leg-color { width: 14px; height: 14px; margin-right: 10px; border-radius: 3px; border: 1px solid #000; }
+        /* Legenda Voltou! */
+        .legend-box { margin-top: 15px; padding: 10px; background: #fff; border-radius: 8px; font-size: 10px; border: 1px solid #eee; display: none; }
+        .leg-item { display: flex; align-items: center; margin-bottom: 3px; }
+        .leg-color { width: 12px; height: 12px; margin-right: 8px; border-radius: 2px; border: 1px solid #000; }
 
-        .popup-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+        .popup-table { border-collapse: collapse; width: 100%; font-size: 11px; }
         .popup-table tr { border-bottom: 1px solid #eee; }
-        .popup-table b { color: #1b5e20; font-size: 10px; text-transform: uppercase; }
+        .popup-table b { color: #1b5e20; font-size: 9px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
+    <button class="toggle-btn" id="showMenuBtn" style="display: none;">
+        <span>☰</span> FILTROS
+    </button>
+
     <img src="https://www.clealco.com.br/assets/images/logo-footer.png" class="logo-clealco">
     <div class="footer">Desenvolvido por Geotecnologia Clealco</div>
 
-    <div class="ui-panel">
-        <h2>Painel de Gestão</h2>
+    <div class="ui-panel" id="mainPanel">
+        <h2>
+            Painel de Gestão
+            <span class="close-menu" id="hideMenuBtn">✖</span>
+        </h2>
         
         <div class="label-ui">Monitoramento Satélite</div>
         <div class="btn-group">
@@ -67,12 +92,12 @@
             <input type="radio" id="tSta" name="viewMode" value="STATUS">
             <label for="tSta">STATUS</label>
             <input type="radio" id="tFaz" name="viewMode" value="TP_FAZ">
-            <label for="tFaz">FAZENDAS</label>
+            <label for="tFaz">TP_FAZ</label>
         </div>
 
         <div id="dynamicLegend" class="legend-box">
-            <b>Legenda do Tema</b>
-            <div id="legendList" style="margin-top:10px;"></div>
+            <b>LEGENDA ATIVA</b>
+            <div id="legendList" style="margin-top:8px;"></div>
         </div>
     </div>
 
@@ -82,36 +107,51 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
     <script src="config.js"></script>
     <script>
-        var map = L.map('map', {zoomControl: false}).setView([-21.2, -50.4], 12);
-        L.control.zoom({position: 'bottomleft'}).addTo(map);
+        var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
         
-        // Fundo Google Hybrid
         L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
 
-        // Adicionar Localização do Dispositivo (GPS)
+        // GPS
         L.control.locate({
             position: 'bottomleft',
             strings: { title: "Minha Localização" },
-            locateOptions: { enableHighAccuracy: true }
+            locateOptions: { enableHighAccuracy: true, watch: true }
         }).addTo(map);
+
+        L.control.zoom({position: 'bottomleft'}).addTo(map);
+
+        // Lógica Menu
+        const panel = document.getElementById('mainPanel');
+        const showBtn = document.getElementById('showMenuBtn');
+        const hideBtn = document.getElementById('hideMenuBtn');
+
+        hideBtn.onclick = () => { panel.classList.add('hidden'); showBtn.style.display = 'flex'; };
+        showBtn.onclick = () => { panel.classList.remove('hidden'); showBtn.style.display = 'none'; };
 
         var satLayer = null;
         var vectorLayer = null;
 
-        // --- PALETA VIVID ---
+        // CORES VIVID / NEON
         const cores = {
             'ESTAGIO': { 
                 '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', 
                 '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' 
             },
-            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO 26': '#76FF03', 'MUDA': '#FF1493' },
-            'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' },
-            'ndvi': { 'Muito Alta': '#08306b', 'Alta': '#1a9641', 'Média': '#ffffbf', 'Baixa': '#fdae61', 'Solo ou nuvem': '#d7191c' }
+            'STATUS': { 
+                'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' 
+            },
+            'TP_FAZ': { 
+                'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' 
+            },
+            'ndvi': { 
+                'Muito Alta': '#08306b', 'Saudável': '#1a9641', 'Média': '#ffffbf', 'Baixa': '#fdae61', 'Solo': '#d7191c' 
+            }
         };
 
         function getStyle(feature) {
             const mode = document.querySelector('input[name="viewMode"]:checked').value;
             let style = { color: "#000000", weight: 2.2, fillColor: 'transparent', fillOpacity: 0 };
+            
             if (cores[mode]) {
                 const val = (feature.properties[mode] || "").toString().toUpperCase().trim();
                 if (cores[mode][val]) {
@@ -151,7 +191,6 @@
             updateLegend(mode);
         }
 
-        // Datas
         const sel = document.getElementById('dateSelect');
         if (typeof galeriaImagens !== 'undefined') {
             galeriaImagens.forEach(i => { 
@@ -159,23 +198,18 @@
             });
         }
 
-        // Talhões
         if (typeof talhoesData !== 'undefined') {
             vectorLayer = L.geoJSON(talhoesData, {
                 style: getStyle,
                 onEachFeature: function (feature, layer) {
                     let t = "<table class='popup-table'>";
                     for (let k in feature.properties) {
-                        if (!['ID', 'FID', 'PK', 'OBJECTID'].includes(k.toUpperCase())) {
+                        if (!['ID', 'FID', 'PK', 'OBJECTID', 'ID_0'].includes(k.toUpperCase())) {
                             t += `<tr><td><b>${k}:</b></td><td>${feature.properties[k]}</td></tr>`;
                         }
                     }
                     layer.bindPopup(t + "</table>");
-                    if (feature.properties.TALHAO) {
-                        L.marker(layer.getBounds().getCenter(), {
-                            icon: L.divIcon({ className: 'l', html: `<span style="color:white; font-weight:bold; text-shadow: 1px 1px 2px #000; font-size:10px;">${feature.properties.TALHAO}</span>`, iconSize: [30, 10]})
-                        }).addTo(map);
-                    }
+                    // Rótulos removidos como solicitado
                 }
             }).addTo(map);
         }
