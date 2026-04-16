@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Clealco Geo - Mobile Pro</title>
+    <title>Clealco Geo - Localização Top Right</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
@@ -13,7 +13,7 @@
         body { margin: 0; font-family: 'Inter', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        /* Painel Retrátil */
+        /* Painel Retrátil no Canto Esquerdo */
         .ui-panel {
             position: absolute; top: 10px; left: 10px; z-index: 1001;
             background: rgba(255, 255, 255, 0.98); padding: 15px;
@@ -46,10 +46,13 @@
         .btn-group input { display: none; }
         .btn-group input:checked + label { background: #1b5e20; color: #fff; border-color: #1b5e20; }
 
-        .logo-clealco { position: absolute; top: 10px; right: 10px; z-index: 1000; width: 100px; opacity: 0.9; }
+        /* Logo Clealco */
+        .logo-clealco { position: absolute; top: 10px; right: 10px; z-index: 1000; width: 100px; opacity: 0.9; pointer-events: none; }
         .footer { position: absolute; bottom: 5px; right: 10px; z-index: 1000; font-size: 8px; color: rgba(255,255,255,0.4); }
 
-        /* Legenda Voltou! */
+        /* Ajuste para o botão do GPS não bater na logo */
+        .leaflet-top.leaflet-right { margin-top: 50px !important; }
+
         .legend-box { margin-top: 15px; padding: 10px; background: #fff; border-radius: 8px; font-size: 10px; border: 1px solid #eee; display: none; }
         .leg-item { display: flex; align-items: center; margin-bottom: 3px; }
         .leg-color { width: 12px; height: 12px; margin-right: 8px; border-radius: 2px; border: 1px solid #000; }
@@ -70,11 +73,11 @@
 
     <div class="ui-panel" id="mainPanel">
         <h2>
-            Painel de Gestão
+            Gestão Clealco
             <span class="close-menu" id="hideMenuBtn">✖</span>
         </h2>
         
-        <div class="label-ui">Monitoramento Satélite</div>
+        <div class="label-ui">Imagens de Satélite</div>
         <div class="btn-group">
             <input type="radio" id="mNdvi" name="viewMode" value="ndvi" checked>
             <label for="mNdvi">NDVI</label>
@@ -83,7 +86,7 @@
         </div>
         <select id="dateSelect"></select>
 
-        <div class="label-ui">Mapas Temáticos</div>
+        <div class="label-ui">Temas de Campo</div>
         <div class="btn-group">
             <input type="radio" id="tNone" name="viewMode" value="none">
             <label for="tNone">LIMPO</label>
@@ -96,7 +99,7 @@
         </div>
 
         <div id="dynamicLegend" class="legend-box">
-            <b>LEGENDA ATIVA</b>
+            <b>LEGENDA</b>
             <div id="legendList" style="margin-top:8px;"></div>
         </div>
     </div>
@@ -108,56 +111,41 @@
     <script src="config.js"></script>
     <script>
         var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
-        
         L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
 
-        // GPS
+        // --- GPS NO CANTO SUPERIOR DIREITO ---
         L.control.locate({
-            position: 'bottomleft',
+            position: 'topright',
             strings: { title: "Minha Localização" },
             locateOptions: { enableHighAccuracy: true, watch: true }
         }).addTo(map);
 
+        // Zoom no canto inferior esquerdo para não poluir
         L.control.zoom({position: 'bottomleft'}).addTo(map);
 
-        // Lógica Menu
+        // Lógica de Ocultar Menu
         const panel = document.getElementById('mainPanel');
         const showBtn = document.getElementById('showMenuBtn');
         const hideBtn = document.getElementById('hideMenuBtn');
-
         hideBtn.onclick = () => { panel.classList.add('hidden'); showBtn.style.display = 'flex'; };
         showBtn.onclick = () => { panel.classList.remove('hidden'); showBtn.style.display = 'none'; };
 
         var satLayer = null;
         var vectorLayer = null;
 
-        // CORES VIVID / NEON
         const cores = {
-            'ESTAGIO': { 
-                '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', 
-                '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' 
-            },
-            'STATUS': { 
-                'COLHEITA': '#0039A6', 'PLANTIO 26': '#76FF03', 'MUDA': '#FF1493' 
-            },
-            'TP_FAZ': { 
-                'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' 
-            },
-            'ndvi': { 
-                'Muito Alta': '#08306b', 'Saudável': '#1a9641', 'Média': '#ffffbf', 'Baixa': '#fdae61', 'Solo': '#d7191c' 
-            }
+            'ESTAGIO': { '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' },
+            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' },
+            'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' },
+            'ndvi': { 'Mto Alta': '#08306b', 'Saudável': '#1a9641', 'Média': '#ffffbf', 'Baixa': '#fdae61', 'Solo': '#d7191c' }
         };
 
         function getStyle(feature) {
             const mode = document.querySelector('input[name="viewMode"]:checked').value;
             let style = { color: "#000000", weight: 2.2, fillColor: 'transparent', fillOpacity: 0 };
-            
             if (cores[mode]) {
                 const val = (feature.properties[mode] || "").toString().toUpperCase().trim();
-                if (cores[mode][val]) {
-                    style.fillColor = cores[mode][val];
-                    style.fillOpacity = 0.85;
-                }
+                if (cores[mode][val]) { style.fillColor = cores[mode][val]; style.fillOpacity = 0.85; }
             }
             return style;
         }
@@ -166,18 +154,12 @@
             const box = document.getElementById('dynamicLegend');
             const list = document.getElementById('legendList');
             list.innerHTML = "";
-            
             let target = (mode === 'ndvi' || mode === 'real') ? 'ndvi' : mode;
             const items = cores[target];
-
             if (items && mode !== 'none') {
                 box.style.display = 'block';
-                for (let k in items) {
-                    list.innerHTML += `<div class="leg-item"><div class="leg-color" style="background:${items[k]}"></div>${k}</div>`;
-                }
-            } else {
-                box.style.display = 'none';
-            }
+                for (let k in items) { list.innerHTML += `<div class="leg-item"><div class="leg-color" style="background:${items[k]}"></div>${k}</div>`; }
+            } else { box.style.display = 'none'; }
         }
 
         function refresh() {
@@ -193,9 +175,7 @@
 
         const sel = document.getElementById('dateSelect');
         if (typeof galeriaImagens !== 'undefined') {
-            galeriaImagens.forEach(i => { 
-                let o = document.createElement('option'); o.value = i.data; o.text = `${i.nome_mes} (${i.data})`; sel.appendChild(o); 
-            });
+            galeriaImagens.forEach(i => { let o = document.createElement('option'); o.value = i.data; o.text = `${i.nome_mes} (${i.data})`; sel.appendChild(o); });
         }
 
         if (typeof talhoesData !== 'undefined') {
@@ -209,7 +189,6 @@
                         }
                     }
                     layer.bindPopup(t + "</table>");
-                    // Rótulos removidos como solicitado
                 }
             }).addTo(map);
         }
