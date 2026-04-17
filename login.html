@@ -16,15 +16,13 @@
 
         .logo-clealco { width: 140px; margin-bottom: 20px; }
         
-        h2 { font-size: 18px; color: #1b5e20; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { font-size: 16px; color: #1b5e20; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
 
         input {
             width: 100%; padding: 15px; margin-bottom: 15px;
             border-radius: 10px; border: 1px solid #ddd;
             box-sizing: border-box; font-size: 16px; outline: none;
         }
-
-        input:focus { border-color: #1b5e20; box-shadow: 0 0 5px rgba(27,94,32,0.3); }
 
         button {
             width: 100%; padding: 15px; border-radius: 10px; border: none;
@@ -35,12 +33,14 @@
         button:active { transform: scale(0.98); background: #0d3a13; }
 
         .error-msg { color: #d32f2f; font-size: 12px; margin-top: 10px; display: none; }
+        
+        .footer-tag { margin-top: 20px; font-size: 10px; color: #999; }
     </style>
 </head>
 <body>
 
     <div class="login-card">
-        <img src="https://www.clealco.com.br/assets/images/logo-footer.png" class="logo-clealco">
+        <img src="logo.png" class="logo-clealco" alt="Clealco">
         <h2>Acesso Restrito</h2>
         
         <input type="text" id="user" placeholder="Usuário" autocomplete="off">
@@ -49,35 +49,36 @@
         <button onclick="validarAcesso()">ENTRAR NO SISTEMA</button>
         
         <div id="erro" class="error-msg">Usuário ou senha incorretos!</div>
+        <div class="footer-tag">Geotecnologia © 2026</div>
     </div>
 
-<script>
-    // --- CONFIGURAÇÃO DO LOG (A "PLANILHA") ---
-    // Você vai criar um Google Form e pegar o ID e o ID da pergunta.
-    // Se não souber fazer, me avisa que eu te ensino a achar esses códigos.
-    const GOOGLE_FORM_URL = "https://docs.google.com/forms/u/0/d/e/SEU_ID_DO_FORM/formResponse";
-    const ENTRY_ID = "entry.123456789"; // O ID da pergunta "usuario"
+    <script>
+        // --- CONFIGURAÇÃO DA PLANILHA (GOOGLE FORMS) ---
+        const FORM_ID = "1FAIpQLSeNsoCkJvkPl0pRQcm5_prcUdpAVTAwlealXqop-AK3ixQzTg";
+        const ENTRY_ID = "entry.1114366034";
 
-    async function gravarLogNaPlanilha(usuario) {
-        const formData = new FormData();
-        formData.append(ENTRY_ID, usuario);
+        async function registrarAcessoNoGoogle(usuario) {
+            const url = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+            const formData = new FormData();
+            formData.append(ENTRY_ID, usuario);
 
-        // Envia para o Google Forms em modo "quieto"
-        fetch(GOOGLE_FORM_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: formData
-        }).then(() => {
-            console.log("Log registrado na planilha.");
-        }).catch(() => {
-            console.log("Erro ao registrar log, mas segue o baile.");
-        });
-    }
+            // Envia o dado para o formulário no fundo (modo silencioso)
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            }).then(() => {
+                console.log("Log registrado com sucesso.");
+            }).catch(() => {
+                console.log("Erro ao salvar log.");
+            });
+        }
 
-    function validarAcesso() {
-        const uInput = document.getElementById('user').value.toLowerCase().trim();
-        const pInput = document.getElementById('pass').value;
+        function validarAcesso() {
+            const uInput = document.getElementById('user').value.toLowerCase().trim();
+            const pInput = document.getElementById('pass').value;
 
+            // --- SUA LISTA DE USUÁRIOS ---
         const listaAutorizados = [
             { usuario: "admin", senha: "123" },
             { usuario: "Peterson", senha: "123" },
@@ -85,19 +86,24 @@
             { usuario: "Lucas", senha: "123" }
         ];
 
-        const encontrado = usuarios.find(user => user.u === uInput && user.p === pInput);
+            const loginOk = usuariosAutorizados.find(user => user.u === uInput && user.p === pInput);
 
-        if (encontrado) {
-            // GRAVA NA PLANILHA ANTES DE ENTRAR
-            gravarLogNaPlanilha(encontrado.u);
+            if (loginOk) {
+                // Registra na sua planilha antes de abrir o mapa
+                registrarAcessoNoGoogle(loginOk.u);
 
-            sessionStorage.setItem('autenticado', 'true');
-            sessionStorage.setItem('usuarioLogado', encontrado.u);
-            window.location.href = "index.html";
-        } else {
-            document.getElementById('erro').style.display = 'block';
+                // Salva a sessão e redireciona
+                sessionStorage.setItem('autenticado', 'true');
+                sessionStorage.setItem('usuarioLogado', loginOk.u);
+                window.location.href = "index.html";
+            } else {
+                document.getElementById('erro').style.display = 'block';
+                if (navigator.vibrate) navigator.vibrate(200);
+            }
         }
-    }
-</script>
+
+        // Atalho com a tecla Enter
+        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') validarAcesso(); });
+    </script>
 </body>
 </html>
