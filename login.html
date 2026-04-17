@@ -52,12 +52,32 @@
     </div>
 
 <script>
+    // --- CONFIGURAÇÃO DO LOG (A "PLANILHA") ---
+    // Você vai criar um Google Form e pegar o ID e o ID da pergunta.
+    // Se não souber fazer, me avisa que eu te ensino a achar esses códigos.
+    const GOOGLE_FORM_URL = "https://docs.google.com/forms/u/0/d/e/SEU_ID_DO_FORM/formResponse";
+    const ENTRY_ID = "entry.123456789"; // O ID da pergunta "usuario"
+
+    async function gravarLogNaPlanilha(usuario) {
+        const formData = new FormData();
+        formData.append(ENTRY_ID, usuario);
+
+        // Envia para o Google Forms em modo "quieto"
+        fetch(GOOGLE_FORM_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formData
+        }).then(() => {
+            console.log("Log registrado na planilha.");
+        }).catch(() => {
+            console.log("Erro ao registrar log, mas segue o baile.");
+        });
+    }
+
     function validarAcesso() {
-        const uInput = document.getElementById('user').value;
+        const uInput = document.getElementById('user').value.toLowerCase().trim();
         const pInput = document.getElementById('pass').value;
 
-        // --- AQUI ESTÁ SUA LISTA DE USUÁRIOS ---
-        // Você pode adicionar quantos quiser aqui dentro dos [ ]
         const listaAutorizados = [
             { usuario: "admin", senha: "123" },
             { usuario: "Peterson", senha: "123" },
@@ -65,19 +85,17 @@
             { usuario: "Lucas", senha: "123" }
         ];
 
-        // Verificamos se o que foi digitado existe na lista
-        const usuarioEncontrado = listaAutorizados.find(u => 
-            u.usuario === uInput && u.senha === pInput
-        );
+        const encontrado = usuarios.find(user => user.u === uInput && user.p === pInput);
 
-        if (usuarioEncontrado) {
-            // Se achou, salva o acesso e entra
+        if (encontrado) {
+            // GRAVA NA PLANILHA ANTES DE ENTRAR
+            gravarLogNaPlanilha(encontrado.u);
+
             sessionStorage.setItem('autenticado', 'true');
-            sessionStorage.setItem('usuarioLogado', usuarioEncontrado.usuario);
+            sessionStorage.setItem('usuarioLogado', encontrado.u);
             window.location.href = "index.html";
         } else {
             document.getElementById('erro').style.display = 'block';
-            if (navigator.vibrate) navigator.vibrate(200); // Vibra o celular no erro
         }
     }
 </script>
