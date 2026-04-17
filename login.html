@@ -79,12 +79,12 @@
             const pInput = document.getElementById('pass').value;
 
             // --- SUA LISTA DE USUÁRIOS ---
-        const listaAutorizados = [
-            { usuario: "admin", senha: "123" },
-            { usuario: "Peterson", senha: "123" },
-            { usuario: "Fabiano", senha: "123" },
-            { usuario: "Lucas", senha: "123" }
-        ];
+            const usuariosAutorizados = [
+                { u: "admin", p: "123" },
+                { u: "admin.clealco", p: "safra2026" },
+                { u: "diretoria", p: "clealco123" },
+                { u: "campo.oeste", p: "agro2026" }
+            ];
 
             const loginOk = usuariosAutorizados.find(user => user.u === uInput && user.p === pInput);
 
