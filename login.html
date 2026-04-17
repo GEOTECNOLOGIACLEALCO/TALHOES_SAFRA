@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <title>Login - Geotecnologia Clealco</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; color: #fff; }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.98); padding: 40px 30px;
+            border-radius: 20px; width: 320px; box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+            text-align: center; color: #333;
+        }
+
+        .logo-clealco { width: 140px; margin-bottom: 20px; }
+        
+        h2 { font-size: 18px; color: #1b5e20; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
+
+        input {
+            width: 100%; padding: 15px; margin-bottom: 15px;
+            border-radius: 10px; border: 1px solid #ddd;
+            box-sizing: border-box; font-size: 16px; outline: none;
+        }
+
+        input:focus { border-color: #1b5e20; box-shadow: 0 0 5px rgba(27,94,32,0.3); }
+
+        button {
+            width: 100%; padding: 15px; border-radius: 10px; border: none;
+            background: #1b5e20; color: #fff; font-weight: bold;
+            font-size: 16px; cursor: pointer; transition: 0.3s;
+        }
+
+        button:active { transform: scale(0.98); background: #0d3a13; }
+
+        .error-msg { color: #d32f2f; font-size: 12px; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <img src="https://www.clealco.com.br/assets/images/logo-footer.png" class="logo-clealco">
+        <h2>Acesso Restrito</h2>
+        
+        <input type="text" id="user" placeholder="Usuário" autocomplete="off">
+        <input type="password" id="pass" placeholder="Senha">
+        
+        <button onclick="validarAcesso()">ENTRAR NO SISTEMA</button>
+        
+        <div id="erro" class="error-msg">Usuário ou senha incorretos!</div>
+    </div>
+
+    <script>
+        function validarAcesso() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+
+            // --- DEFINA SEU USUÁRIO E SENHA AQUI ---
+            const USUARIO_CORRETO = "lucas.clealco";
+            const SENHA_CORRETA = "safra2026";
+
+            if (u === USUARIO_CORRETO && p === SENHA_CORRETA) {
+                // Se estiver certo, ele salva uma "chave" temporária e abre o site
+                sessionStorage.setItem('autenticado', 'true');
+                window.location.href = "index.html";
+            } else {
+                document.getElementById('erro').style.display = 'block';
+                // Vibração no celular se errar (opcional)
+                if (navigator.vibrate) navigator.vibrate(200);
+            }
+        }
+
+        // Permitir entrar apertando "Enter"
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') validarAcesso();
+        });
+    </script>
+</body>
+</html>
