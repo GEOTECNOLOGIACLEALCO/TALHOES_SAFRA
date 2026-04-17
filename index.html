@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Monitoramento de Safra - Geotecnologia</title>
+    <title>Monitoramento Safra 2026 - Clealco</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
@@ -10,11 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        :root { --primary-color: #1b5e20; --accent-color: #76FF03; --bg-dark: #000; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); overflow: hidden; }
+        :root { --primary: #1b5e20; --accent: #76FF03; --dark: #000; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--dark); overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        /* Painel Lateral Moderno e Retrátil */
+        /* Painel UI Retrátil */
         .ui-panel {
             position: absolute; top: 10px; left: 10px; z-index: 1001;
             background: rgba(255, 255, 255, 0.98); padding: 20px;
@@ -26,14 +26,14 @@
 
         .toggle-menu {
             position: absolute; top: 15px; left: 15px; z-index: 1002;
-            background: var(--primary-color); color: white; border: none;
+            background: var(--primary); color: white; border: none;
             padding: 12px 18px; border-radius: 10px; cursor: pointer;
             font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            display: flex; align-items: center; gap: 8px; font-size: 14px;
+            display: flex; align-items: center; gap: 8px;
         }
 
-        h2 { margin: 0 0 10px; font-size: 18px; color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .close-icon { cursor: pointer; color: #999; font-size: 22px; }
+        h2 { margin: 0 0 10px; font-size: 18px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .close-icon { cursor: pointer; color: #999; font-size: 24px; padding: 5px; }
 
         .label-ui { font-size: 10px; font-weight: 700; color: #888; margin-top: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
         
@@ -42,10 +42,17 @@
         .btn-group { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
         .btn-group label { 
             flex: 1 1 30%; background: #f5f5f5; padding: 10px 2px; text-align: center; 
-            border-radius: 8px; font-size: 11px; cursor: pointer; font-weight: 600; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 600; border: 1px solid #ddd;
         }
         .btn-group input { display: none; }
-        .btn-group input:checked + label { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .btn-group input:checked + label { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* Status de Nuvem */
+        #nuvemStatus { 
+            background: #fff3e0; color: #e65100; font-size: 11px; padding: 8px; 
+            border-radius: 8px; margin-top: 10px; font-weight: bold; 
+            border-left: 4px solid #ff9800; display: none;
+        }
 
         /* Botão de Rota */
         .route-btn {
@@ -54,22 +61,22 @@
             font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; font-size: 13px;
         }
 
-        /* Branding */
+        /* Branding e Footer */
         .main-logo { position: absolute; top: 15px; right: 15px; z-index: 1000; width: 110px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        .dev-footer { position: absolute; bottom: 8px; right: 15px; z-index: 1000; font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 400; text-shadow: 1px 1px 2px #000; }
+        .dev-footer { position: absolute; bottom: 10px; right: 15px; z-index: 1000; font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 400; text-shadow: 1px 1px 2px #000; }
 
-        /* GPS Position Adjustment */
+        /* Ajuste do GPS para não bater na Logo */
         .leaflet-top.leaflet-right { margin-top: 60px !important; }
 
-        /* Legenda */
+        /* Legenda Dinâmica */
         .legend-area { margin-top: 15px; padding: 12px; background: #fff; border-radius: 10px; font-size: 11px; border: 1px solid #eee; display: none; }
         .leg-row { display: flex; align-items: center; margin-bottom: 5px; }
         .leg-color { width: 14px; height: 14px; margin-right: 10px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.2); }
 
-        /* Popup Tabela */
+        /* Popup */
         .popup-table { border-collapse: collapse; width: 100%; font-size: 12px; }
         .popup-table tr { border-bottom: 1px solid #eee; }
-        .popup-table b { color: var(--primary-color); font-size: 10px; text-transform: uppercase; }
+        .popup-table b { color: var(--primary); font-size: 10px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -82,12 +89,11 @@
 
     <button class="toggle-menu" id="openBtn" style="display: none;"><span>☰</span> FILTROS</button>
 
-    <img src="logo9.png" class="main-logo" alt="Logo">
-    
+    <img src="logo.png" class="main-logo" alt="Logo">
     <div class="dev-footer">Desenvolvido por Geotecnologias</div>
 
     <div class="ui-panel" id="panel">
-        <h2>Painel Safra <span class="close-icon" id="closeBtn">×</span></h2>
+        <h2>Painel de Gestão <span class="close-icon" id="closeBtn">×</span></h2>
         
         <div class="label-ui">📍 Localizar Fazenda</div>
         <select id="fazendaSelect"><option value="">Todas as Fazendas</option></select>
@@ -100,6 +106,8 @@
             <input type="radio" id="mReal" name="viewMode" value="real"><label for="mReal">REAL</label>
         </div>
         <select id="dateSelect"></select>
+        
+        <div id="nuvemStatus"></div>
 
         <div class="label-ui">📊 Mapas Temáticos</div>
         <div class="btn-group">
@@ -110,7 +118,7 @@
         </div>
 
         <div id="legendBox" class="legend-area">
-            <b>LEGENDA</b>
+            <b>LEGENDA ATIVA</b>
             <div id="legendItems" style="margin-top:10px;"></div>
         </div>
     </div>
@@ -121,20 +129,20 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
     <script src="config.js"></script>
     <script>
-        // 1. Inicialização do Mapa
+        // --- 1. CONFIGURAÇÃO DO MAPA ---
         var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google Hybrid'}).addTo(map);
 
         // GPS Top Right
         L.control.locate({
             position: 'topright',
-            strings: { title: "Minha Posição" },
+            strings: { title: "Minha Localização" },
             locateOptions: { enableHighAccuracy: true, watch: true }
         }).addTo(map);
 
         L.control.zoom({position: 'bottomleft'}).addTo(map);
 
-        // 2. Interface Retrátil
+        // --- 2. LÓGICA DO MENU ---
         const panel = document.getElementById('panel');
         const openBtn = document.getElementById('openBtn');
         const closeBtn = document.getElementById('closeBtn');
@@ -144,21 +152,20 @@
 
         var satLayer = null;
         var vectorLayer = null;
-        var fazendaAtiva = "";
+        var fazendaFiltro = "";
         var colFazenda = "";
 
-        // 3. Cores Neon/Vivid
+        // --- 3. CORES VIVID / DISCRETAS ---
         const cores = {
             'ESTAGIO': { '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' },
-            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO 26': '#76FF03', 'MUDA': '#FF1493' },
+            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' },
             'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' },
-            'ndvi': { 'Mto Alta': '#08306b', 'Saudável': '#1a9641', 'Média': '#ffffbf', 'Baixa': '#fdae61', 'Solo': '#d7191c' }
+            'ndvi': { 'Vigor Top': '#053061', 'Ótimo': '#1a9641', 'Bom': '#a6d96a', 'Médio': '#ffffbf', 'Estresse': '#fdae61', 'Solo': '#d7191c' }
         };
 
         function getStyle(feature) {
             const mode = document.querySelector('input[name="viewMode"]:checked').value;
             const faz = (feature.properties[colFazenda] || "").toString().trim();
-            
             let style = { color: "#000000", weight: 2.2, fillColor: 'transparent', fillOpacity: 0 };
 
             if (cores[mode]) {
@@ -166,13 +173,13 @@
                 if (cores[mode][val]) { style.fillColor = cores[mode][val]; style.fillOpacity = 0.85; }
             }
 
-            // Destaque da Fazenda Filtrada
-            if (fazendaAtiva !== "") {
-                if (faz === fazendaAtiva) {
+            // Efeito de Destaque da Fazenda
+            if (fazendaFiltro !== "") {
+                if (faz === fazendaFiltro) {
                     style.color = "#FFFF00"; style.weight = 4;
                     style.fillOpacity = style.fillOpacity > 0 ? 0.9 : 0.2;
                 } else {
-                    style.fillOpacity = style.fillOpacity * 0.2;
+                    style.fillOpacity = style.fillOpacity * 0.15;
                     style.color = "rgba(0,0,0,0.1)";
                 }
             }
@@ -194,21 +201,28 @@
 
         function refresh() {
             const mode = document.querySelector('input[name="viewMode"]:checked').value;
+            const statusNuvem = document.getElementById('nuvemStatus');
+            
             if (satLayer) map.removeLayer(satLayer);
             if (mode === 'ndvi' || mode === 'real') {
                 const item = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
-                if (item) satLayer = L.tileLayer(item[mode]).addTo(map);
-            }
+                if (item) {
+                    satLayer = L.tileLayer(item[mode]).addTo(map);
+                    statusNuvem.style.display = 'block';
+                    statusNuvem.innerHTML = `☁️ Cobertura de Nuvens: ${item.nuvem}%`;
+                }
+            } else { statusNuvem.style.display = 'none'; }
+            
             if (vectorLayer) vectorLayer.setStyle(getStyle);
             updateLegend(mode);
         }
 
-        // 4. Filtro e Rota
+        // --- 4. FILTRO DE FAZENDA E ROTA ---
         document.getElementById('fazendaSelect').onchange = function() {
-            fazendaAtiva = this.value;
+            fazendaFiltro = this.value;
             const btn = document.getElementById('routeLink');
 
-            if (fazendaAtiva === "") {
+            if (fazendaFiltro === "") {
                 btn.style.display = 'none';
                 vectorLayer.setStyle(getStyle); return;
             }
@@ -216,7 +230,7 @@
             let b = L.latLngBounds();
             let count = 0;
             vectorLayer.eachLayer(l => {
-                if ((l.feature.properties[colFazenda] || "").toString().trim() === fazendaAtiva) {
+                if ((l.feature.properties[colFazenda] || "").toString().trim() === fazendaFiltro) {
                     b.extend(l.getBounds()); count++;
                 }
             });
@@ -230,10 +244,10 @@
             }
         };
 
-        // 5. Carga de Dados
+        // --- 5. CARGA DE DADOS ---
         if (typeof talhoesData !== 'undefined') {
             const keys = Object.keys(talhoesData.features[0].properties);
-            colFazenda = keys.find(k => ["FAZENDA", "NOME_FAZ", "FAZ_NM"].includes(k.toUpperCase())) || keys[0];
+            colFazenda = keys.find(k => ["FAZENDA", "NOME_FAZ", "FAZ_NM", "DESC_FAZ"].includes(k.toUpperCase())) || keys[0];
             
             const fSel = document.getElementById('fazendaSelect');
             let nomes = [...new Set(talhoesData.features.map(f => (f.properties[colFazenda] || "").toString().trim()))];
@@ -246,7 +260,7 @@
                 onEachFeature: (f, l) => {
                     let h = "<table class='popup-table'>";
                     for (let k in f.properties) {
-                        if (!['ID', 'FID', 'PK', 'OBJECTID'].includes(k.toUpperCase())) {
+                        if (!['ID', 'FID', 'PK', 'OBJECTID', 'ID_0'].includes(k.toUpperCase())) {
                             h += `<tr><td><b>${k}</b></td><td>${f.properties[k]}</td></tr>`;
                         }
                     }
