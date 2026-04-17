@@ -51,30 +51,35 @@
         <div id="erro" class="error-msg">Usuário ou senha incorretos!</div>
     </div>
 
-    <script>
-        function validarAcesso() {
-            const u = document.getElementById('user').value;
-            const p = document.getElementById('pass').value;
+<script>
+    function validarAcesso() {
+        const uInput = document.getElementById('user').value;
+        const pInput = document.getElementById('pass').value;
 
-            // --- DEFINA SEU USUÁRIO E SENHA AQUI ---
-            const USUARIO_CORRETO = "lucas.clealco";
-            const SENHA_CORRETA = "safra2026";
+        // --- AQUI ESTÁ SUA LISTA DE USUÁRIOS ---
+        // Você pode adicionar quantos quiser aqui dentro dos [ ]
+        const listaAutorizados = [
+            { usuario: "admin", senha: "123" },
+            { usuario: "Peterson", senha: "123" },
+            { usuario: "Fabiano", senha: "123" },
+            { usuario: "Lucas", senha: "123" }
+        ];
 
-            if (u === USUARIO_CORRETO && p === SENHA_CORRETA) {
-                // Se estiver certo, ele salva uma "chave" temporária e abre o site
-                sessionStorage.setItem('autenticado', 'true');
-                window.location.href = "index.html";
-            } else {
-                document.getElementById('erro').style.display = 'block';
-                // Vibração no celular se errar (opcional)
-                if (navigator.vibrate) navigator.vibrate(200);
-            }
+        // Verificamos se o que foi digitado existe na lista
+        const usuarioEncontrado = listaAutorizados.find(u => 
+            u.usuario === uInput && u.senha === pInput
+        );
+
+        if (usuarioEncontrado) {
+            // Se achou, salva o acesso e entra
+            sessionStorage.setItem('autenticado', 'true');
+            sessionStorage.setItem('usuarioLogado', usuarioEncontrado.usuario);
+            window.location.href = "index.html";
+        } else {
+            document.getElementById('erro').style.display = 'block';
+            if (navigator.vibrate) navigator.vibrate(200); // Vibra o celular no erro
         }
-
-        // Permitir entrar apertando "Enter"
-        document.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') validarAcesso();
-        });
-    </script>
+    }
+</script>
 </body>
 </html>
