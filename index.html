@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Monitoramento Safra - Logística Clealco</title>
+    <title>Clealco Geo - Filtro por Lista</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -32,33 +32,25 @@
         .label-ui { font-size: 10px; font-weight: 700; color: #888; margin-top: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
         select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; font-size: 14px; background: #fff; }
 
-        /* Estilo para Alternar Modos */
-        .mode-selector { display: flex; background: #eee; border-radius: 10px; padding: 4px; margin-top: 8px; }
-        .mode-selector input { display: none; }
-        .mode-selector label { 
-            flex: 1; text-align: center; padding: 8px 2px; font-size: 10px; 
-            font-weight: 700; cursor: pointer; border-radius: 8px; transition: 0.3s;
+        /* Estilo Botão Upload TXT */
+        .file-upload-wrapper { margin-top: 10px; position: relative; }
+        .file-upload-btn {
+            display: block; width: 100%; background: #555; color: white;
+            padding: 10px; border-radius: 8px; text-align: center;
+            font-size: 11px; font-weight: bold; cursor: pointer; border: 1px dashed #fff;
         }
-        .mode-selector input:checked + label { background: var(--primary); color: white; }
+        #fileInput { display: none; }
+        .reset-filter { font-size: 9px; color: #d32f2f; cursor: pointer; text-decoration: underline; margin-top: 5px; display: none; }
 
         .btn-group { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
         .btn-group label { flex: 1 1 30%; background: #f0f0f0; padding: 10px 2px; text-align: center; border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 600; }
         .btn-group input { display: none; }
         .btn-group input:checked + label { background: var(--primary); color: #fff; }
 
-        #nuvemStatus { background: #fff3e0; color: #e65100; font-size: 11px; padding: 8px; border-radius: 8px; margin-top: 10px; font-weight: bold; border-left: 4px solid #ff9800; display: none; }
-
-        .route-btn {
-            display: none; width: 100%; background: var(--accent); color: white; border: none;
-            padding: 14px; border-radius: 10px; margin-top: 15px;
-            font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; font-size: 13px;
-        }
-
+        .route-btn { display: none; width: 100%; background: var(--accent); color: white; padding: 14px; border-radius: 10px; margin-top: 15px; font-weight: 700; text-decoration: none; text-align: center; font-size: 13px; }
         .main-logo { position: absolute; top: 15px; right: 15px; z-index: 1000; width: 110px; }
         .dev-footer { position: absolute; bottom: 10px; right: 15px; z-index: 1000; font-size: 10px; color: rgba(255,255,255,0.4); }
         .leaflet-top.leaflet-right { margin-top: 60px !important; }
-
-        #dest-container { display: none; transition: 0.3s; }
     </style>
 </head>
 <body>
@@ -66,29 +58,23 @@
     <script>if(sessionStorage.getItem('autenticado')!=='true') window.location.href='login.html';</script>
 
     <button class="toggle-menu" id="openBtn" style="display: none;">☰ FILTROS</button>
-    <img src="logo.png" class="main-logo" alt="Clealco">
+    <img src="logo.png" class="main-logo">
     <div class="dev-footer">Desenvolvido por Geotecnologias</div>
 
     <div class="ui-panel" id="panel">
         <h2>Painel Geotec <span class="close-icon" id="closeBtn">×</span></h2>
         
-        <div class="label-ui">Modo de Rota</div>
-        <div class="mode-selector">
-            <input type="radio" id="modeAtual" name="routeMode" value="atual" checked>
-            <label for="modeAtual">📍 LOC. ATUAL</label>
-            <input type="radio" id="modeFarms" name="routeMode" value="farms">
-            <label for="modeFarms">🚜 ENTRE FAZENDAS</label>
-        </div>
+        <div class="label-ui">📍 Seleção Manual</div>
+        <select id="fazendaSelect"><option value="">Todas as Fazendas</option></select>
 
-        <div class="label-ui" id="labelFaz1">Fazenda (Origem)</div>
-        <select id="fazendaSelect"><option value="">Selecionar...</option></select>
-
-        <div id="dest-container">
-            <div class="label-ui">Fazenda (Destino)</div>
-            <select id="fazendaDestSelect"><option value="">Selecionar Destino...</option></select>
+        <div class="label-ui">📂 Importar Lista (.txt)</div>
+        <div class="file-upload-wrapper">
+            <label for="fileInput" class="file-upload-btn" id="fileLabel">📁 SELECIONAR ARQUIVO TXT</label>
+            <input type="file" id="fileInput" accept=".txt">
+            <div id="resetTxt" class="reset-filter" onclick="limparFiltroTxt()">Limpar lista importada</div>
         </div>
         
-        <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA NO GOOGLE</a>
+        <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA</a>
 
         <div class="label-ui">Monitoramento Satélite</div>
         <div class="btn-group">
@@ -96,7 +82,6 @@
             <input type="radio" id="mReal" name="viewMode" value="real"><label for="mReal">REAL</label>
         </div>
         <select id="dateSelect"></select>
-        <div id="nuvemStatus"></div>
 
         <div class="label-ui">Mapas de Campo</div>
         <div class="btn-group">
@@ -124,8 +109,8 @@
         openBtn.onclick = () => { panel.classList.remove('hidden'); openBtn.style.display = 'none'; };
 
         var satLayer = null, vectorLayer = null, colFaz = "";
+        var listaFiltroTxt = new Set(); // Armazena a lista do arquivo TXT
 
-        // --- LÓGICA DE CORES ---
         const cores = {
             'ESTAGIO': { '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' },
             'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' },
@@ -134,9 +119,8 @@
 
         function getStyle(f) {
             const m = document.querySelector('input[name="viewMode"]:checked').value;
-            const fz = (f.properties[colFaz] || "").toString().trim();
-            const fzSel = document.getElementById('fazendaSelect').value;
-            const fzDest = document.getElementById('fazendaDestSelect').value;
+            const fz = (f.properties[colFaz] || "").toString().trim().toUpperCase();
+            const fzSel = document.getElementById('fazendaSelect').value.toUpperCase();
             
             let s = { color: "#000", weight: 1.5, fillColor: 'transparent', fillOpacity: 0 };
             
@@ -145,9 +129,16 @@
                 if (cores[m][v]) { s.fillColor = cores[m][v]; s.fillOpacity = 0.8; }
             }
 
-            // Destaque para as fazendas selecionadas
-            if (fzSel !== "") {
-                if (fz === fzSel || fz === fzDest) {
+            // Lógica de Filtro: TXT ou Select Manual
+            let emDestaque = false;
+            if (listaFiltroTxt.size > 0) {
+                if (listaFiltroTxt.has(fz)) emDestaque = true;
+            } else if (fzSel !== "") {
+                if (fz === fzSel) emDestaque = true;
+            }
+
+            if (listaFiltroTxt.size > 0 || fzSel !== "") {
+                if (emDestaque) {
                     s.color = "#FF0"; s.weight = 3.5; s.fillOpacity = s.fillOpacity > 0 ? 0.9 : 0.2;
                 } else {
                     s.fillOpacity *= 0.1; s.color = "rgba(0,0,0,0.1)";
@@ -156,83 +147,71 @@
             return s;
         }
 
-        function refresh() {
-            const m = document.querySelector('input[name="viewMode"]:checked').value;
-            const ni = document.getElementById('nuvemStatus');
-            if (satLayer) map.removeLayer(satLayer);
-            if (m === 'ndvi' || m === 'real') {
-                const it = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
-                if (it) { 
-                    satLayer = L.tileLayer(it[m]).addTo(map); 
-                    ni.style.display = 'block'; ni.innerHTML = `☁️ Cobertura de Nuvens: ${it.nuvem}%`;
-                }
-            } else ni.style.display = 'none';
-            if (vectorLayer) vectorLayer.setStyle(getStyle);
-        }
+        // --- LÓGICA DE IMPORTAÇÃO DE TXT ---
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        // --- LÓGICA DE ROTAS E MODOS ---
-        const modeRadios = document.querySelectorAll('input[name="routeMode"]');
-        const destContainer = document.getElementById('dest-container');
-        const f1Sel = document.getElementById('fazendaSelect');
-        const f2Sel = document.getElementById('fazendaDestSelect');
-        const routeLink = document.getElementById('routeLink');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                // Limpa e formata a lista (remove espaços e quebras de linha)
+                listaFiltroTxt = new Set(text.split(/\r?\n/).map(s => s.trim().toUpperCase()).filter(s => s !== ""));
+                
+                document.getElementById('fileLabel').innerText = `📄 ${file.name} (${listaFiltroTxt.size} itens)`;
+                document.getElementById('resetTxt').style.display = 'block';
+                document.getElementById('fazendaSelect').value = ""; // Reseta o manual
+                
+                aplicarFiltroEZoom();
+            };
+            reader.readAsText(file);
+        });
 
-        function getFarmCenter(nome) {
-            if (!nome) return null;
-            let b = L.latLngBounds();
-            let count = 0;
-            vectorLayer.eachLayer(l => {
-                if ((l.feature.properties[colFaz] || "").toString().trim() === nome) {
-                    b.extend(l.getBounds()); count++;
-                }
-            });
-            return count > 0 ? { center: b.getCenter(), bounds: b } : null;
-        }
-
-        function updateUI() {
-            const mode = document.querySelector('input[name="routeMode"]:checked').value;
-            destContainer.style.display = (mode === 'farms') ? 'block' : 'none';
-            document.getElementById('labelFaz1').innerText = (mode === 'farms') ? "Fazenda (Origem)" : "Localizar Fazenda";
-            updateRoute();
-        }
-
-        function updateRoute() {
-            const mode = document.querySelector('input[name="routeMode"]:checked').value;
-            const res1 = getFarmCenter(f1Sel.value);
-            const res2 = getFarmCenter(f2Sel.value);
-
-            if (res1) {
-                if (mode === 'atual') {
-                    routeLink.href = `https://www.google.com/maps/dir/?api=1&destination=${res1.center.lat},${res1.center.lng}`;
-                    routeLink.style.display = 'block';
-                    map.fitBounds(res1.bounds, {padding:[30,30]});
-                } else if (mode === 'farms' && res2) {
-                    routeLink.href = `https://www.google.com/maps/dir/?api=1&origin=${res1.center.lat},${res1.center.lng}&destination=${res2.center.lat},${res2.center.lng}`;
-                    routeLink.style.display = 'block';
-                    let combined = res1.bounds.extend(res2.bounds);
-                    map.fitBounds(combined, {padding:[50,50]});
-                } else {
-                    routeLink.style.display = 'none';
-                }
-            } else {
-                routeLink.style.display = 'none';
-            }
+        function limparFiltroTxt() {
+            listaFiltroTxt.clear();
+            document.getElementById('fileInput').value = "";
+            document.getElementById('fileLabel').innerText = "📁 SELECIONAR ARQUIVO TXT";
+            document.getElementById('resetTxt').style.display = 'none';
             vectorLayer.setStyle(getStyle);
         }
 
-        // --- CARREGAMENTO INICIAL ---
-        if (typeof talhoesData !== 'undefined') {
-            const ks = Object.keys(talhoesData.features[0].properties);
-            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ"].includes(k.toUpperCase())) || ks[0];
-            
-            let ns = [...new Set(talhoesData.features.map(f => (f.properties[colFaz] || "").toString().trim()))].sort();
-            ns.forEach(n => {
-                if(n){
-                    let o1 = document.createElement('option'); o1.value = n; o1.text = n; f1Sel.appendChild(o1);
-                    let o2 = document.createElement('option'); o2.value = n; o2.text = n; f2Sel.appendChild(o2);
+        function aplicarFiltroEZoom() {
+            let b = L.latLngBounds();
+            let count = 0;
+            vectorLayer.eachLayer(l => {
+                const fz = (l.feature.properties[colFaz] || "").toString().trim().toUpperCase();
+                if (listaFiltroTxt.has(fz)) {
+                    b.extend(l.getBounds());
+                    count++;
                 }
             });
 
+            if (count > 0) {
+                map.fitBounds(b, {padding: [50, 50]});
+                vectorLayer.setStyle(getStyle);
+            } else {
+                alert("Nenhuma fazenda da lista encontrada no mapa!");
+            }
+        }
+
+        function refresh() {
+            const m = document.querySelector('input[name="viewMode"]:checked').value;
+            if (satLayer) map.removeLayer(satLayer);
+            if (m === 'ndvi' || m === 'real') {
+                const it = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
+                if (it) satLayer = L.tileLayer(it[m]).addTo(map);
+            }
+            if (vectorLayer) vectorLayer.setStyle(getStyle);
+        }
+
+        // Carga Inicial e Popular Select
+        if (typeof talhoesData !== 'undefined') {
+            const ks = Object.keys(talhoesData.features[0].properties);
+            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ"].includes(k.toUpperCase())) || ks[0];
+            const fs = document.getElementById('fazendaSelect');
+            let ns = [...new Set(talhoesData.features.map(f => (f.properties[colFaz] || "").toString().trim()))].sort();
+            ns.forEach(n => { if(n){ let o = document.createElement('option'); o.value = n; o.text = n; fs.appendChild(o); }});
+            
             vectorLayer = L.geoJSON(talhoesData, { style: getStyle, onEachFeature: (f, l) => {
                 let h = "<table>";
                 for (let k in f.properties) h += `<tr><td><b>${k}</b></td><td>${f.properties[k]}</td></tr>`;
@@ -243,9 +222,13 @@
         const ds = document.getElementById('dateSelect');
         galeriaImagens.forEach(i => { let o = document.createElement('option'); o.value = i.data; o.text = `${i.nome_mes} (${i.data})`; ds.appendChild(o); });
         
-        modeRadios.forEach(r => r.onchange = updateUI);
-        f1Sel.onchange = updateRoute;
-        f2Sel.onchange = updateRoute;
+        document.getElementById('fazendaSelect').onchange = () => {
+            if (document.getElementById('fazendaSelect').value !== "") {
+                listaFiltroTxt.clear(); // Se selecionou manual, apaga a lista TXT
+                document.getElementById('resetTxt').style.display = 'none';
+            }
+            vectorLayer.setStyle(getStyle);
+        };
         document.querySelectorAll('input[name="viewMode"]').forEach(r => r.onchange = refresh);
         ds.onchange = refresh;
         refresh();
