@@ -1,283 +1,147 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Monitoramento Safra 2026 - Clealco</title>
+    <title>Clealco Geo - Logística e NDVI</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #1b5e20; --accent: #76FF03; --dark: #000; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--dark); overflow: hidden; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
-
-        /* Painel UI Retrátil */
         .ui-panel {
             position: absolute; top: 10px; left: 10px; z-index: 1001;
-            background: rgba(255, 255, 255, 0.98); padding: 20px;
-            border-radius: 15px; width: 280px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            max-height: 85vh; overflow-y: auto;
+            background: rgba(255, 255, 255, 0.98); padding: 15px;
+            border-radius: 15px; width: 270px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            transition: 0.4s; max-height: 90vh; overflow-y: auto;
         }
-        .ui-panel.hidden { transform: translateX(-340px); opacity: 0; pointer-events: none; }
-
-        .toggle-menu {
-            position: absolute; top: 15px; left: 15px; z-index: 1002;
-            background: var(--primary); color: white; border: none;
-            padding: 12px 18px; border-radius: 10px; cursor: pointer;
-            font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        h2 { margin: 0 0 10px; font-size: 18px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .close-icon { cursor: pointer; color: #999; font-size: 24px; padding: 5px; }
-
-        .label-ui { font-size: 10px; font-weight: 700; color: #888; margin-top: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; background: #fff; font-size: 14px; }
-
+        .ui-panel.hidden { transform: translateX(-350px); }
+        .toggle-btn { position: absolute; top: 15px; left: 15px; z-index: 1002; background: #1b5e20; color: #fff; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        h2 { margin: 0; font-size: 16px; color: #1b5e20; border-bottom: 1px solid #ddd; padding-bottom: 5px; display: flex; justify-content: space-between; }
+        .label-ui { font-size: 9px; font-weight: 700; color: #888; margin-top: 12px; text-transform: uppercase; }
+        select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; font-size: 12px; }
         .btn-group { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-        .btn-group label { 
-            flex: 1 1 30%; background: #f5f5f5; padding: 10px 2px; text-align: center; 
-            border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 600; border: 1px solid #ddd;
-        }
+        .btn-group label { flex: 1 1 30%; background: #eee; padding: 8px 2px; text-align: center; border-radius: 6px; font-size: 10px; cursor: pointer; font-weight: 600; }
         .btn-group input { display: none; }
-        .btn-group input:checked + label { background: var(--primary); color: #fff; border-color: var(--primary); }
-
-        /* Status de Nuvem */
-        #nuvemStatus { 
-            background: #fff3e0; color: #e65100; font-size: 11px; padding: 8px; 
-            border-radius: 8px; margin-top: 10px; font-weight: bold; 
-            border-left: 4px solid #ff9800; display: none;
-        }
-
-        /* Botão de Rota */
-        .route-btn {
-            display: none; width: 100%; background: #4285F4; color: white; border: none;
-            padding: 14px; border-radius: 10px; margin-top: 15px;
-            font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; font-size: 13px;
-        }
-
-        /* Branding e Footer */
-        .main-logo { position: absolute; top: 15px; right: 15px; z-index: 1000; width: 110px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        .dev-footer { position: absolute; bottom: 10px; right: 15px; z-index: 1000; font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 400; text-shadow: 1px 1px 2px #000; }
-
-        /* Ajuste do GPS para não bater na Logo */
+        .btn-group input:checked + label { background: #1b5e20; color: #fff; }
+        .route-box { background: #e3f2fd; padding: 10px; border-radius: 10px; margin-top: 15px; border: 1px solid #bbdefb; }
+        .go-btn { width: 100%; background: #1565c0; color: white; border: none; padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; }
+        #nuvemInfo { font-size: 10px; color: #e65100; font-weight: bold; margin-top: 5px; }
+        .main-logo { position: absolute; top: 15px; right: 15px; z-index: 1000; width: 90px; }
+        .dev-footer { position: absolute; bottom: 10px; right: 15px; z-index: 1000; font-size: 9px; color: rgba(255,255,255,0.4); }
         .leaflet-top.leaflet-right { margin-top: 60px !important; }
-
-        /* Legenda Dinâmica */
-        .legend-area { margin-top: 15px; padding: 12px; background: #fff; border-radius: 10px; font-size: 11px; border: 1px solid #eee; display: none; }
-        .leg-row { display: flex; align-items: center; margin-bottom: 5px; }
-        .leg-color { width: 14px; height: 14px; margin-right: 10px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.2); }
-
-        /* Popup */
-        .popup-table { border-collapse: collapse; width: 100%; font-size: 12px; }
-        .popup-table tr { border-bottom: 1px solid #eee; }
-        .popup-table b { color: var(--primary); font-size: 10px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <script>
-        if (sessionStorage.getItem('autenticado') !== 'true') {
-            window.location.href = "login.html";
-        }
-    </script>
+    <script>if(sessionStorage.getItem('autenticado')!=='true') window.location.href='login.html';</script>
 
-    <button class="toggle-menu" id="openBtn" style="display: none;"><span>☰</span> FILTROS</button>
-
-    <img src="logo.png" class="main-logo" alt="Logo">
+    <button class="toggle-btn" id="openBtn" style="display:none;">☰ MENU</button>
+    <img src="logo.png" class="main-logo">
     <div class="dev-footer">Desenvolvido por Geotecnologias</div>
 
     <div class="ui-panel" id="panel">
-        <h2>Painel de Gestão <span class="close-icon" id="closeBtn">×</span></h2>
+        <h2>Gestão Safra <span style="cursor:pointer" id="hideBtn">×</span></h2>
         
-        <div class="label-ui">📍 Localizar Fazenda</div>
-        <select id="fazendaSelect"><option value="">Todas as Fazendas</option></select>
-        
-        <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA NO MAPS</a>
-
-        <div class="label-ui">🛰️ Monitoramento Satélite</div>
+        <div class="label-ui">Monitoramento Satélite</div>
         <div class="btn-group">
             <input type="radio" id="mNdvi" name="viewMode" value="ndvi" checked><label for="mNdvi">NDVI</label>
             <input type="radio" id="mReal" name="viewMode" value="real"><label for="mReal">REAL</label>
         </div>
         <select id="dateSelect"></select>
-        
-        <div id="nuvemStatus"></div>
+        <div id="nuvemInfo"></div>
 
-        <div class="label-ui">📊 Mapas Temáticos</div>
+        <div class="label-ui">Filtro de Mapa</div>
+        <select id="fazendaFiltro"><option value="">Todas as Fazendas</option></select>
+
+        <div class="route-box">
+            <div class="label-ui" style="color:#1565c0">📍 Rota entre Fazendas</div>
+            <select id="rotaOrigem"><option value="">Origem...</option></select>
+            <select id="rotaDestino" style="margin-top:5px;"><option value="">Destino...</option></select>
+            <button class="go-btn" onclick="gerarRotaDuo()">TRAÇAR LOGÍSTICA</button>
+        </div>
+
+        <div class="label-ui">Temas de Campo</div>
         <div class="btn-group">
             <input type="radio" id="tNone" name="viewMode" value="none"><label for="tNone">LIMPO</label>
             <input type="radio" id="tEst" name="viewMode" value="ESTAGIO"><label for="tEst">ESTÁGIO</label>
             <input type="radio" id="tSta" name="viewMode" value="STATUS"><label for="tSta">STATUS</label>
-            <input type="radio" id="tFaz" name="viewMode" value="TP_FAZ"><label for="tFaz">TP_FAZ</label>
-        </div>
-
-        <div id="legendBox" class="legend-area">
-            <b>LEGENDA ATIVA</b>
-            <div id="legendItems" style="margin-top:10px;"></div>
         </div>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
     <script src="config.js"></script>
     <script>
-        // --- 1. CONFIGURAÇÃO DO MAPA ---
         var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google Hybrid'}).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
+        L.control.locate({position: 'topright'}).addTo(map);
 
-        // GPS Top Right
-        L.control.locate({
-            position: 'topright',
-            strings: { title: "Minha Localização" },
-            locateOptions: { enableHighAccuracy: true, watch: true }
-        }).addTo(map);
+        const p = document.getElementById('panel'), ob = document.getElementById('openBtn'), hb = document.getElementById('hideBtn');
+        hb.onclick = () => { p.classList.add('hidden'); ob.style.display = 'block'; };
+        ob.onclick = () => { p.classList.remove('hidden'); ob.style.display = 'none'; };
 
-        L.control.zoom({position: 'bottomleft'}).addTo(map);
-
-        // --- 2. LÓGICA DO MENU ---
-        const panel = document.getElementById('panel');
-        const openBtn = document.getElementById('openBtn');
-        const closeBtn = document.getElementById('closeBtn');
-
-        closeBtn.onclick = () => { panel.classList.add('hidden'); openBtn.style.display = 'flex'; };
-        openBtn.onclick = () => { panel.classList.remove('hidden'); openBtn.style.display = 'none'; };
-
-        var satLayer = null;
-        var vectorLayer = null;
-        var fazendaFiltro = "";
-        var colFazenda = "";
-
-        // --- 3. CORES VIVID / DISCRETAS ---
-        const cores = {
-            'ESTAGIO': { '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' },
-            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' },
-            'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' },
-            'ndvi': { 'Vigor Top': '#053061', 'Ótimo': '#1a9641', 'Bom': '#a6d96a', 'Médio': '#ffffbf', 'Estresse': '#fdae61', 'Solo': '#d7191c' }
-        };
-
-        function getStyle(feature) {
-            const mode = document.querySelector('input[name="viewMode"]:checked').value;
-            const faz = (feature.properties[colFazenda] || "").toString().trim();
-            let style = { color: "#000000", weight: 2.2, fillColor: 'transparent', fillOpacity: 0 };
-
-            if (cores[mode]) {
-                const val = (feature.properties[mode] || "").toString().toUpperCase().trim();
-                if (cores[mode][val]) { style.fillColor = cores[mode][val]; style.fillOpacity = 0.85; }
-            }
-
-            // Efeito de Destaque da Fazenda
-            if (fazendaFiltro !== "") {
-                if (faz === fazendaFiltro) {
-                    style.color = "#FFFF00"; style.weight = 4;
-                    style.fillOpacity = style.fillOpacity > 0 ? 0.9 : 0.2;
-                } else {
-                    style.fillOpacity = style.fillOpacity * 0.15;
-                    style.color = "rgba(0,0,0,0.1)";
-                }
-            }
-            return style;
-        }
-
-        function updateLegend(mode) {
-            const box = document.getElementById('legendBox');
-            const list = document.getElementById('legendItems');
-            list.innerHTML = "";
-            let target = (mode === 'ndvi' || mode === 'real') ? 'ndvi' : mode;
-            if (cores[target] && mode !== 'none') {
-                box.style.display = 'block';
-                for (let k in cores[target]) { 
-                    list.innerHTML += `<div class="leg-row"><div class="leg-color" style="background:${cores[target][k]}"></div>${k}</div>`; 
-                }
-            } else { box.style.display = 'none'; }
-        }
+        var satLayer = null, vectorLayer = null, colFaz = "";
 
         function refresh() {
-            const mode = document.querySelector('input[name="viewMode"]:checked').value;
-            const statusNuvem = document.getElementById('nuvemStatus');
-            
+            const m = document.querySelector('input[name="viewMode"]:checked').value;
+            const ni = document.getElementById('nuvemInfo');
             if (satLayer) map.removeLayer(satLayer);
-            if (mode === 'ndvi' || mode === 'real') {
-                const item = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
-                if (item) {
-                    satLayer = L.tileLayer(item[mode]).addTo(map);
-                    statusNuvem.style.display = 'block';
-                    statusNuvem.innerHTML = `☁️ Cobertura de Nuvens: ${item.nuvem}%`;
-                }
-            } else { statusNuvem.style.display = 'none'; }
-            
-            if (vectorLayer) vectorLayer.setStyle(getStyle);
-            updateLegend(mode);
+            const it = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
+            if (it && (m === 'ndvi' || m === 'real')) {
+                satLayer = L.tileLayer(it[m]).addTo(map);
+                ni.innerHTML = `☁️ Nuvens: ${it.nuvem}%`;
+            } else ni.innerHTML = "";
+            if (vectorLayer) vectorLayer.setStyle(f => {
+                let s = { color: "#000", weight: 1, fillColor: 'transparent', fillOpacity: 0 };
+                const fazAtiva = document.getElementById('fazendaFiltro').value;
+                if (fazAtiva && f.properties[colFaz] === fazAtiva) { s.color = "#FF0"; s.weight = 3; s.fillOpacity = 0.2; }
+                return s;
+            });
         }
 
-        // --- 4. FILTRO DE FAZENDA E ROTA ---
-        document.getElementById('fazendaSelect').onchange = function() {
-            fazendaFiltro = this.value;
-            const btn = document.getElementById('routeLink');
-
-            if (fazendaFiltro === "") {
-                btn.style.display = 'none';
-                vectorLayer.setStyle(getStyle); return;
-            }
-
-            let b = L.latLngBounds();
-            let count = 0;
+        function gerarRotaDuo() {
+            const o = document.getElementById('rotaOrigem').value;
+            const d = document.getElementById('rotaDestino').value;
+            if (!o || !d) return alert("Selecione Origem e Destino!");
+            
+            let pOrigem, pDestino;
             vectorLayer.eachLayer(l => {
-                if ((l.feature.properties[colFazenda] || "").toString().trim() === fazendaFiltro) {
-                    b.extend(l.getBounds()); count++;
-                }
+                if (l.feature.properties[colFaz] === o) pOrigem = l.getBounds().getCenter();
+                if (l.feature.properties[colFaz] === d) pDestino = l.getBounds().getCenter();
             });
+            window.open(`https://www.google.com/maps/dir/${pOrigem.lat},${pOrigem.lng}/${pDestino.lat},${pDestino.lng}/`);
+        }
 
-            if (count > 0) {
-                map.fitBounds(b, { padding: [30, 30] });
-                vectorLayer.setStyle(getStyle);
-                const c = b.getCenter();
-                btn.href = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
-                btn.style.display = 'block';
-            }
-        };
-
-        // --- 5. CARGA DE DADOS ---
         if (typeof talhoesData !== 'undefined') {
-            const keys = Object.keys(talhoesData.features[0].properties);
-            colFazenda = keys.find(k => ["FAZENDA", "NOME_FAZ", "FAZ_NM", "DESC_FAZ"].includes(k.toUpperCase())) || keys[0];
-            
-            const fSel = document.getElementById('fazendaSelect');
-            let nomes = [...new Set(talhoesData.features.map(f => (f.properties[colFazenda] || "").toString().trim()))];
-            nomes.filter(n => n !== "").sort().forEach(n => {
-                let o = document.createElement('option'); o.value = n; o.text = n; fSel.appendChild(o);
-            });
-
-            vectorLayer = L.geoJSON(talhoesData, {
-                style: getStyle,
-                onEachFeature: (f, l) => {
-                    let h = "<table class='popup-table'>";
-                    for (let k in f.properties) {
-                        if (!['ID', 'FID', 'PK', 'OBJECTID', 'ID_0'].includes(k.toUpperCase())) {
-                            h += `<tr><td><b>${k}</b></td><td>${f.properties[k]}</td></tr>`;
-                        }
-                    }
-                    l.bindPopup(h + "</table>");
+            const ks = Object.keys(talhoesData.features[0].properties);
+            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ"].includes(k.toUpperCase())) || ks[0];
+            const fs = document.getElementById('fazendaFiltro'), ro = document.getElementById('rotaOrigem'), rd = document.getElementById('rotaDestino');
+            let ns = [...new Set(talhoesData.features.map(f => f.properties[colFaz]))].sort();
+            ns.forEach(n => {
+                if(n) {
+                    [fs, ro, rd].forEach(s => { let opt = new Option(n, n); s.add(opt); });
                 }
-            }).addTo(map);
-        }
-
-        const dSel = document.getElementById('dateSelect');
-        if (typeof galeriaImagens !== 'undefined') {
-            galeriaImagens.forEach(i => { 
-                let o = document.createElement('option'); o.value = i.data; o.text = `${i.nome_mes} (${i.data})`; dSel.appendChild(o); 
             });
+            vectorLayer = L.geoJSON(talhoesData).addTo(map);
         }
 
+        const ds = document.getElementById('dateSelect');
+        galeriaImagens.forEach(i => ds.add(new Option(`${i.nome_mes} (${i.data})`, i.data)));
         document.querySelectorAll('input[name="viewMode"]').forEach(r => r.onchange = refresh);
-        dSel.onchange = refresh;
+        ds.onchange = refresh;
+        document.getElementById('fazendaFiltro').onchange = () => {
+            const faz = document.getElementById('fazendaFiltro').value;
+            if (faz) {
+                let b = L.latLngBounds();
+                vectorLayer.eachLayer(l => { if (l.feature.properties[colFaz] === faz) b.extend(l.getBounds()); });
+                map.fitBounds(b);
+            }
+            refresh();
+        };
         refresh();
     </script>
 </body>
