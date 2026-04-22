@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Geotecnologia Clealco</title>
+    <title>Geotecnia Clealco - Filtro de Rótulos</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -22,11 +22,11 @@
         .label-ui { font-size: 9px; font-weight: 700; color: #888; margin-top: 12px; text-transform: uppercase; }
         select, input[type="file"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; font-size: 13px; }
 
-        /* Estilo do Rótulo Único */
         .farm-label {
-            background: rgba(0,0,0,0.6); border: 1px solid #fff; border-radius: 4px;
-            color: #fff; padding: 2px 6px; font-size: 10px; font-weight: bold;
+            background: rgba(0,0,0,0.7); border: 1px solid #76FF03; border-radius: 4px;
+            color: #fff; padding: 3px 8px; font-size: 11px; font-weight: bold;
             white-space: nowrap; pointer-events: none; text-shadow: 1px 1px 1px #000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
         .mode-selector { display: flex; background: #eee; border-radius: 10px; padding: 3px; margin-top: 8px; gap: 2px; }
@@ -66,7 +66,7 @@
         </div>
 
         <div id="selector-box">
-            <div class="label-ui" id="lab1">Fazenda</div>
+            <div class="label-ui" id="lab1">Fazenda / Origem</div>
             <select id="fazendaSelect"><option value="">Selecionar...</option></select>
         </div>
 
@@ -76,13 +76,13 @@
         </div>
 
         <div id="txt-box" style="display:none;">
-            <div class="label-ui">Importar TXT</div>
+            <div class="label-ui">Importar Lista TXT</div>
             <input type="file" id="fileInput" accept=".txt">
         </div>
 
         <div class="check-container">
             <input type="checkbox" id="checkLabels" checked>
-            <label for="checkLabels">Exibir Nomes das Fazendas</label>
+            <label for="checkLabels">Exibir Rótulos Filtrados</label>
         </div>
         
         <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA</a>
@@ -94,7 +94,7 @@
         </div>
         <select id="dateSelect"></select>
 
-        <div class="label-ui">Mapas Temáticos</div>
+        <div class="label-ui">Temas de Campo</div>
         <div class="btn-group">
             <input type="radio" id="tNone" name="viewMode" value="none"><label for="tNone">LIMPO</label>
             <input type="radio" id="tEst" name="viewMode" value="ESTAGIO"><label for="tEst">ESTÁGIO</label>
@@ -110,7 +110,7 @@
     <script src="config.js"></script>
     <script>
         var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google Hybrid'}).addTo(map);
         L.control.locate({position: 'topright'}).addTo(map);
         L.control.zoom({position: 'bottomleft'}).addTo(map);
 
@@ -135,25 +135,40 @@
             }
 
             let d = false;
-            if (mode === 'txt' && listaFiltroTxt.length > 0) { if (listaFiltroTxt.includes(fz)) d = true; } 
-            else { const s1 = document.getElementById('fazendaSelect').value.toUpperCase(); const s2 = document.getElementById('fazendaDestSelect').value.toUpperCase(); if (s1 !== "" && (fz === s1 || fz === s2)) d = true; }
+            const s1 = document.getElementById('fazendaSelect').value.toUpperCase();
+            const s2 = document.getElementById('fazendaDestSelect').value.toUpperCase();
 
-            if (d) { s.color = "#FF0"; s.weight = 3.5; s.fillOpacity = s.fillOpacity > 0 ? 0.9 : 0.2; }
-            else if ((mode === 'txt' && listaFiltroTxt.length > 0) || (mode !== 'txt' && document.getElementById('fazendaSelect').value !== "")) { s.fillOpacity *= 0.1; s.color = "rgba(0,0,0,0.1)"; }
+            if (mode === 'txt' && listaFiltroTxt.length > 0) { if (listaFiltroTxt.includes(fz)) d = true; } 
+            else if (s1 !== "" && (fz === s1 || fz === s2)) d = true;
+
+            if (d) { s.color = "#FFFF00"; s.weight = 3.5; s.fillOpacity = s.fillOpacity > 0 ? 0.9 : 0.2; }
+            else if ((mode === 'txt' && listaFiltroTxt.length > 0) || (s1 !== "")) { s.fillOpacity *= 0.1; s.color = "rgba(0,0,0,0.1)"; }
             return s;
         }
 
-        // --- CÁLCULO DE RÓTULOS ÚNICOS ---
+        // --- RÓTULOS INTELIGENTES (FILTRADOS) ---
         function updateLabels() {
             labelLayer.clearLayers();
             if (!document.getElementById('checkLabels').checked) return;
 
+            const mode = document.querySelector('input[name="routeMode"]:checked').value;
+            const s1 = document.getElementById('fazendaSelect').value.toUpperCase();
+            const s2 = document.getElementById('fazendaDestSelect').value.toUpperCase();
+
             let farmGroups = {};
             vectorLayer.eachLayer(l => {
                 let name = (l.feature.properties[colFaz] || "").toString().trim();
-                if (!name) return;
-                if (!farmGroups[name]) farmGroups[name] = L.latLngBounds();
-                farmGroups[name].extend(l.getBounds());
+                let nameUP = name.toUpperCase();
+                
+                // FILTRO DE EXIBIÇÃO: Só agrupa se a fazenda estiver ativa no filtro atual
+                let deveMostrar = false;
+                if (mode === 'txt' && listaFiltroTxt.includes(nameUP)) deveMostrar = true;
+                else if (mode !== 'txt' && s1 !== "" && (nameUP === s1 || nameUP === s2)) deveMostrar = true;
+
+                if (deveMostrar) {
+                    if (!farmGroups[name]) farmGroups[name] = L.latLngBounds();
+                    farmGroups[name].extend(l.getBounds());
+                }
             });
 
             for (let name in farmGroups) {
@@ -173,6 +188,34 @@
             }
             if (vectorLayer) vectorLayer.setStyle(getStyle);
             updateLabels();
+            updateRouteBtn();
+        }
+
+        function updateRouteBtn() {
+            const mode = document.querySelector('input[name="routeMode"]:checked').value;
+            const s1 = document.getElementById('fazendaSelect').value;
+            const s2 = document.getElementById('fazendaDestSelect').value;
+            const btn = document.getElementById('routeLink');
+
+            if (mode === 'atual' && s1 !== "") {
+                let b = L.latLngBounds();
+                vectorLayer.eachLayer(l => { if(l.feature.properties[colFaz].toUpperCase() === s1.toUpperCase()) b.extend(l.getBounds()); });
+                const c = b.getCenter();
+                btn.href = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+                btn.style.display = 'block';
+                map.fitBounds(b, {padding:[40,40]});
+            } else if (mode === 'farms' && s1 !== "" && s2 !== "") {
+                let b1 = L.latLngBounds(), b2 = L.latLngBounds();
+                vectorLayer.eachLayer(l => {
+                    let n = l.feature.properties[colFaz].toUpperCase();
+                    if(n === s1.toUpperCase()) b1.extend(l.getBounds());
+                    if(n === s2.toUpperCase()) b2.extend(l.getBounds());
+                });
+                const c1 = b1.getCenter(), c2 = b2.getCenter();
+                btn.href = `https://www.google.com/maps/dir/?api=1&origin=${c1.lat},${c1.lng}&destination=${c2.lat},${c2.lng}`;
+                btn.style.display = 'block';
+                map.fitBounds(b1.extend(b2), {padding:[50,50]});
+            } else { btn.style.display = 'none'; }
         }
 
         // --- INTERFACE ---
@@ -193,7 +236,7 @@
                 if(listaFiltroTxt.length > 0) {
                     let b = L.latLngBounds();
                     vectorLayer.eachLayer(l => { if(listaFiltroTxt.includes(l.feature.properties[colFaz].toUpperCase())) b.extend(l.getBounds()); });
-                    map.fitBounds(b, {padding:[40,40]});
+                    map.fitBounds(b, {padding:[50,50]});
                 }
             };
             reader.readAsText(e.target.files[0]);
@@ -203,7 +246,7 @@
 
         if (typeof talhoesData !== 'undefined') {
             const ks = Object.keys(talhoesData.features[0].properties);
-            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ"].includes(k.toUpperCase())) || ks[0];
+            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ", "COD_FAZ"].includes(k.toUpperCase())) || ks[0];
             let ns = [...new Set(talhoesData.features.map(f => (f.properties[colFaz] || "").toString().trim()))].sort();
             ns.forEach(n => {
                 if(n){
