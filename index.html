@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Clealco Geo - Modo Auditoria</title>
+    <title>Geotecnologia Clealco</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #1b5e20; --accent: #4285F4; --dark: #000; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--dark); overflow: hidden; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
-
         .ui-panel {
             position: absolute; top: 10px; left: 10px; z-index: 1001;
             background: rgba(255, 255, 255, 0.98); padding: 18px;
@@ -19,52 +17,41 @@
             transition: all 0.4s ease; max-height: 90vh; overflow-y: auto;
         }
         .ui-panel.hidden { transform: translateX(-340px); opacity: 0; }
+        .toggle-btn { position: absolute; top: 15px; left: 15px; z-index: 1002; background: #1b5e20; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        h2 { margin: 0 0 10px; font-size: 15px; color: #1b5e20; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
+        .label-ui { font-size: 9px; font-weight: 700; color: #888; margin-top: 12px; text-transform: uppercase; }
+        select, input[type="file"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; font-size: 13px; }
 
-        .toggle-menu {
-            position: absolute; top: 15px; left: 15px; z-index: 1002;
-            background: var(--primary); color: white; border: none; padding: 12px;
-            border-radius: 10px; cursor: pointer; font-weight: bold;
+        /* Estilo do Rótulo Único */
+        .farm-label {
+            background: rgba(0,0,0,0.6); border: 1px solid #fff; border-radius: 4px;
+            color: #fff; padding: 2px 6px; font-size: 10px; font-weight: bold;
+            white-space: nowrap; pointer-events: none; text-shadow: 1px 1px 1px #000;
         }
 
-        h2 { margin: 0 0 10px; font-size: 15px; color: var(--primary); border-bottom: 1px solid #ddd; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .close-icon { cursor: pointer; color: #999; font-size: 24px; }
-
-        .label-ui { font-size: 9px; font-weight: 700; color: #888; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-        select, input[type="file"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; font-size: 13px; background: #fff; box-sizing: border-box; }
-
-        /* Seletor de 3 Modos */
         .mode-selector { display: flex; background: #eee; border-radius: 10px; padding: 3px; margin-top: 8px; gap: 2px; }
         .mode-selector input { display: none; }
-        .mode-selector label { 
-            flex: 1; text-align: center; padding: 10px 0; font-size: 8px; 
-            font-weight: 800; cursor: pointer; border-radius: 8px; transition: 0.2s; color: #666;
-        }
-        .mode-selector input:checked + label { background: var(--primary); color: white; }
+        .mode-selector label { flex: 1; text-align: center; padding: 10px 0; font-size: 8px; font-weight: 800; cursor: pointer; border-radius: 8px; }
+        .mode-selector input:checked + label { background: #1b5e20; color: white; }
 
         .btn-group { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
         .btn-group label { flex: 1 1 30%; background: #f0f0f0; padding: 10px 2px; text-align: center; border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 600; }
         .btn-group input { display: none; }
-        .btn-group input:checked + label { background: var(--primary); color: #fff; }
+        .btn-group input:checked + label { background: #1b5e20; color: #fff; }
 
-        #nuvemStatus { background: #fff3e0; color: #e65100; font-size: 10px; padding: 8px; border-radius: 8px; margin-top: 10px; font-weight: bold; border-left: 4px solid #ff9800; display: none; }
-
-        .route-btn {
-            display: none; width: 100%; background: var(--accent); color: white; border: none;
-            padding: 14px; border-radius: 10px; margin-top: 15px;
-            font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; font-size: 12px;
-        }
-
+        .route-btn { display: none; width: 100%; background: #4285F4; color: white; text-align: center; padding: 14px; border-radius: 10px; margin-top: 15px; font-weight: 700; text-decoration: none; font-size: 12px; }
         .main-logo { position: absolute; top: 15px; right: 15px; z-index: 1000; width: 100px; }
         .dev-footer { position: absolute; bottom: 8px; right: 15px; z-index: 1000; font-size: 9px; color: rgba(255,255,255,0.4); }
+        .leaflet-top.leaflet-right { margin-top: 60px !important; }
 
-        #dest-container, #txt-container { display: none; margin-bottom: 10px; }
+        .check-container { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11px; font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
 
     <script>if(sessionStorage.getItem('autenticado')!=='true') window.location.href='login.html';</script>
 
-    <button class="toggle-menu" id="openBtn" style="display: none;">☰</button>
+    <button class="toggle-btn" id="openBtn" style="display: none;">☰</button>
     <img src="logo.png" class="main-logo">
     <div class="dev-footer">Desenvolvido por Geotecnologias</div>
 
@@ -75,36 +62,39 @@
         <div class="mode-selector">
             <input type="radio" id="modeA" name="routeMode" value="atual" checked><label for="modeA">📍 ATUAL</label>
             <input type="radio" id="modeF" name="routeMode" value="farms"><label for="modeF">🚜 ENTRE</label>
-            <input type="radio" id="modeT" name="routeMode" value="txt"><label for="modeT">📄 LISTA TXT</label>
+            <input type="radio" id="modeT" name="routeMode" value="txt"><label for="modeT">📄 LISTA</label>
         </div>
 
-        <div id="origin-container">
-            <div class="label-ui" id="labelFaz1">Localizar Fazenda</div>
+        <div id="selector-box">
+            <div class="label-ui" id="lab1">Fazenda</div>
             <select id="fazendaSelect"><option value="">Selecionar...</option></select>
         </div>
 
-        <div id="dest-container">
-            <div class="label-ui">Fazenda (Destino)</div>
-            <select id="fazendaDestSelect"><option value="">Selecionar Destino...</option></select>
+        <div id="dest-box" style="display:none;">
+            <div class="label-ui">Fazenda Destino</div>
+            <select id="fazendaDestSelect"><option value="">Selecionar...</option></select>
         </div>
 
-        <div id="txt-container">
-            <div class="label-ui">Importar Lista (.txt)</div>
+        <div id="txt-box" style="display:none;">
+            <div class="label-ui">Importar TXT</div>
             <input type="file" id="fileInput" accept=".txt">
-            <div style="font-size: 9px; color: #666; margin-top: 5px;">* Um código/nome por linha</div>
+        </div>
+
+        <div class="check-container">
+            <input type="checkbox" id="checkLabels" checked>
+            <label for="checkLabels">Exibir Nomes das Fazendas</label>
         </div>
         
         <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA</a>
 
-        <div class="label-ui">Satélite (NDVI)</div>
+        <div class="label-ui">Satélite (NDVI PURO)</div>
         <div class="btn-group">
             <input type="radio" id="mNdvi" name="viewMode" value="ndvi" checked><label for="mNdvi">NDVI</label>
             <input type="radio" id="mReal" name="viewMode" value="real"><label for="mReal">REAL</label>
         </div>
         <select id="dateSelect"></select>
-        <div id="nuvemStatus"></div>
 
-        <div class="label-ui">Temas de Campo</div>
+        <div class="label-ui">Mapas Temáticos</div>
         <div class="btn-group">
             <input type="radio" id="tNone" name="viewMode" value="none"><label for="tNone">LIMPO</label>
             <input type="radio" id="tEst" name="viewMode" value="ESTAGIO"><label for="tEst">ESTÁGIO</label>
@@ -121,7 +111,6 @@
     <script>
         var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
         L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
-
         L.control.locate({position: 'topright'}).addTo(map);
         L.control.zoom({position: 'bottomleft'}).addTo(map);
 
@@ -129,141 +118,101 @@
         closeBtn.onclick = () => { panel.classList.add('hidden'); openBtn.style.display = 'block'; };
         openBtn.onclick = () => { panel.classList.remove('hidden'); openBtn.style.display = 'none'; };
 
-        var satLayer = null, vectorLayer = null, colFaz = "";
-        var listaFiltroTxt = []; // Guarda os nomes do TXT
-
-        const cores = {
-            'ESTAGIO': { '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' },
-            'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' },
-            'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' }
-        };
+        var satLayer = null, vectorLayer = null, colFaz = "", labelLayer = L.layerGroup().addTo(map);
+        var listaFiltroTxt = [];
 
         function getStyle(f) {
             const m = document.querySelector('input[name="viewMode"]:checked').value;
             const mode = document.querySelector('input[name="routeMode"]:checked').value;
             const fz = (f.properties[colFaz] || "").toString().trim().toUpperCase();
-            
             let s = { color: "#000", weight: 1.5, fillColor: 'transparent', fillOpacity: 0 };
+            
+            const cores = { 'ESTAGIO': { '1': '#0039A6', '2': '#00BFFF', '3': '#00CD00', '4': '#FFFF00', '5': '#FF0000', '6+': '#8B0000', 'REFORMA': '#FF1493' }, 'STATUS': { 'COLHEITA': '#0039A6', 'PLANTIO': '#76FF03', 'MUDA': '#FF1493' }, 'TP_FAZ': { 'PROPRIA': '#FF8C00', 'FORNECEDORES': '#00CED1' } };
             
             if (cores[m]) {
                 const v = (f.properties[m] || "").toString().toUpperCase().trim();
                 if (cores[m][v]) { s.fillColor = cores[m][v]; s.fillOpacity = 0.8; }
             }
 
-            // --- Lógica de Destaque por Modo ---
-            let destaque = false;
-            if (mode === 'txt' && listaFiltroTxt.length > 0) {
-                if (listaFiltroTxt.includes(fz)) destaque = true;
-            } else {
-                const fzSel = document.getElementById('fazendaSelect').value.toUpperCase();
-                const fzDest = document.getElementById('fazendaDestSelect').value.toUpperCase();
-                if (fzSel !== "" && (fz === fzSel || fz === fzDest)) destaque = true;
-            }
+            let d = false;
+            if (mode === 'txt' && listaFiltroTxt.length > 0) { if (listaFiltroTxt.includes(fz)) d = true; } 
+            else { const s1 = document.getElementById('fazendaSelect').value.toUpperCase(); const s2 = document.getElementById('fazendaDestSelect').value.toUpperCase(); if (s1 !== "" && (fz === s1 || fz === s2)) d = true; }
 
-            if (destaque) {
-                s.color = "#FF0"; s.weight = 3.5; s.fillOpacity = s.fillOpacity > 0 ? 0.9 : 0.2;
-            } else if ((mode === 'txt' && listaFiltroTxt.length > 0) || (mode !== 'txt' && document.getElementById('fazendaSelect').value !== "")) {
-                s.fillOpacity *= 0.1; s.color = "rgba(0,0,0,0.1)";
-            }
-            
+            if (d) { s.color = "#FF0"; s.weight = 3.5; s.fillOpacity = s.fillOpacity > 0 ? 0.9 : 0.2; }
+            else if ((mode === 'txt' && listaFiltroTxt.length > 0) || (mode !== 'txt' && document.getElementById('fazendaSelect').value !== "")) { s.fillOpacity *= 0.1; s.color = "rgba(0,0,0,0.1)"; }
             return s;
+        }
+
+        // --- CÁLCULO DE RÓTULOS ÚNICOS ---
+        function updateLabels() {
+            labelLayer.clearLayers();
+            if (!document.getElementById('checkLabels').checked) return;
+
+            let farmGroups = {};
+            vectorLayer.eachLayer(l => {
+                let name = (l.feature.properties[colFaz] || "").toString().trim();
+                if (!name) return;
+                if (!farmGroups[name]) farmGroups[name] = L.latLngBounds();
+                farmGroups[name].extend(l.getBounds());
+            });
+
+            for (let name in farmGroups) {
+                let center = farmGroups[name].getCenter();
+                L.marker(center, {
+                    icon: L.divIcon({ className: 'farm-label', html: name, iconSize: null })
+                }).addTo(labelLayer);
+            }
         }
 
         function refresh() {
             const m = document.querySelector('input[name="viewMode"]:checked').value;
-            const ni = document.getElementById('nuvemStatus');
             if (satLayer) map.removeLayer(satLayer);
             if (m === 'ndvi' || m === 'real') {
                 const it = galeriaImagens.find(i => i.data === document.getElementById('dateSelect').value);
-                if (it) { 
-                    satLayer = L.tileLayer(it[m]).addTo(map); 
-                    ni.style.display = 'block'; ni.innerHTML = `☁️ Nuvens: ${it.nuvem}%`;
-                }
-            } else ni.style.display = 'none';
+                if (it) satLayer = L.tileLayer(it[m]).addTo(map);
+            }
             if (vectorLayer) vectorLayer.setStyle(getStyle);
+            updateLabels();
         }
 
-        // --- LÓGICA DE MODOS ---
-        const modeRadios = document.querySelectorAll('input[name="routeMode"]');
-        const destBox = document.getElementById('dest-container');
-        const txtBox = document.getElementById('txt-container');
-        const originBox = document.getElementById('origin-container');
-        const f1S = document.getElementById('fazendaSelect'), f2S = document.getElementById('fazendaDestSelect');
-        const routeLink = document.getElementById('routeLink');
+        // --- INTERFACE ---
+        document.querySelectorAll('input[name="routeMode"]').forEach(r => r.onchange = () => {
+            const m = document.querySelector('input[name="routeMode"]:checked').value;
+            document.getElementById('dest-box').style.display = (m === 'farms') ? 'block' : 'none';
+            document.getElementById('txt-box').style.display = (m === 'txt') ? 'block' : 'none';
+            document.getElementById('selector-box').style.display = (m === 'txt') ? 'none' : 'block';
+            listaFiltroTxt = [];
+            refresh();
+        });
 
-        function updateUI() {
-            const mode = document.querySelector('input[name="routeMode"]:checked').value;
-            destBox.style.display = (mode === 'farms') ? 'block' : 'none';
-            txtBox.style.display = (mode === 'txt') ? 'block' : 'none';
-            originBox.style.display = (mode === 'txt') ? 'none' : 'block';
-            document.getElementById('labelFaz1').innerText = (mode === 'farms') ? "Fazenda (Origem)" : "Localizar Fazenda";
-            
-            if (mode !== 'txt') listaFiltroTxt = [];
-            updateVisuals();
-        }
-
-        // --- PROCESSAR TXT ---
-        document.getElementById('fileInput').onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        document.getElementById('fileInput').onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                listaFiltroTxt = content.split(/\r?\n/).map(l => l.trim().toUpperCase()).filter(l => l !== "");
-                updateVisuals();
+            reader.onload = (ev) => {
+                listaFiltroTxt = ev.target.result.split(/\r?\n/).map(l => l.trim().toUpperCase()).filter(l => l !== "");
+                refresh();
+                if(listaFiltroTxt.length > 0) {
+                    let b = L.latLngBounds();
+                    vectorLayer.eachLayer(l => { if(listaFiltroTxt.includes(l.feature.properties[colFaz].toUpperCase())) b.extend(l.getBounds()); });
+                    map.fitBounds(b, {padding:[40,40]});
+                }
             };
-            reader.readAsText(file);
+            reader.readAsText(e.target.files[0]);
         };
 
-        function updateVisuals() {
-            const mode = document.querySelector('input[name="routeMode"]:checked').value;
-            let bounds = L.latLngBounds();
-            let count = 0;
+        document.getElementById('checkLabels').onchange = updateLabels;
 
-            vectorLayer.eachLayer(l => {
-                const fz = (l.feature.properties[colFaz] || "").toString().trim().toUpperCase();
-                let match = false;
-                
-                if (mode === 'txt') {
-                    if (listaFiltroTxt.includes(fz)) match = true;
-                } else {
-                    const s1 = f1S.value.toUpperCase(), s2 = f2S.value.toUpperCase();
-                    if (s1 !== "" && (fz === s1 || fz === s2)) match = true;
-                }
-
-                if (match) { bounds.extend(l.getBounds()); count++; }
-            });
-
-            if (count > 0) {
-                map.fitBounds(bounds, {padding:[40,40]});
-                if (mode === 'atual' && f1S.value !== "") {
-                    const center = bounds.getCenter();
-                    routeLink.href = `https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;
-                    routeLink.style.display = 'block';
-                } else if (mode === 'farms' && f1S.value !== "" && f2S.value !== "") {
-                    // Rota entre fazendas lógica aqui se necessário
-                    routeLink.style.display = 'block';
-                } else { routeLink.style.display = 'none'; }
-            } else { routeLink.style.display = 'none'; }
-            
-            vectorLayer.setStyle(getStyle);
-        }
-
-        // --- CARREGAMENTO INICIAL ---
         if (typeof talhoesData !== 'undefined') {
             const ks = Object.keys(talhoesData.features[0].properties);
-            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ", "COD_FAZ"].includes(k.toUpperCase())) || ks[0];
+            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ"].includes(k.toUpperCase())) || ks[0];
             let ns = [...new Set(talhoesData.features.map(f => (f.properties[colFaz] || "").toString().trim()))].sort();
             ns.forEach(n => {
                 if(n){
-                    let o1 = document.createElement('option'); o1.value = n; o1.text = n; f1S.appendChild(o1);
-                    let o2 = document.createElement('option'); o2.value = n; o2.text = n; f2S.appendChild(o2);
+                    let o1 = document.createElement('option'); o1.value = n; o1.text = n; document.getElementById('fazendaSelect').appendChild(o1);
+                    let o2 = document.createElement('option'); o2.value = n; o2.text = n; document.getElementById('fazendaDestSelect').appendChild(o2);
                 }
             });
-
             vectorLayer = L.geoJSON(talhoesData, { style: getStyle, onEachFeature: (f, l) => {
-                let h = "<table>";
-                for (let k in f.properties) h += `<tr><td><b>${k}</b></td><td>${f.properties[k]}</td></tr>`;
+                let h = "<table>"; for (let k in f.properties) h += `<tr><td><b>${k}</b></td><td>${f.properties[k]}</td></tr>`;
                 l.bindPopup(h + "</table>");
             }}).addTo(map);
         }
@@ -271,9 +220,8 @@
         const ds = document.getElementById('dateSelect');
         galeriaImagens.forEach(i => { let o = document.createElement('option'); o.value = i.data; o.text = `${i.nome_mes} (${i.data})`; ds.appendChild(o); });
         
-        modeRadios.forEach(r => r.onchange = updateUI);
-        f1S.onchange = updateVisuals;
-        f2S.onchange = updateVisuals;
+        document.getElementById('fazendaSelect').onchange = refresh;
+        document.getElementById('fazendaDestSelect').onchange = refresh;
         document.querySelectorAll('input[name="viewMode"]').forEach(r => r.onchange = refresh);
         ds.onchange = refresh;
         refresh();
