@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <title>Geotecnia Clealco - Filtro de Rótulos</title>
+    <title>Clealco Geo - Rota Fix</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,6 @@
             background: rgba(0,0,0,0.7); border: 1px solid #76FF03; border-radius: 4px;
             color: #fff; padding: 3px 8px; font-size: 11px; font-weight: bold;
             white-space: nowrap; pointer-events: none; text-shadow: 1px 1px 1px #000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
         .mode-selector { display: flex; background: #eee; border-radius: 10px; padding: 3px; margin-top: 8px; gap: 2px; }
@@ -39,12 +38,18 @@
         .btn-group input { display: none; }
         .btn-group input:checked + label { background: #1b5e20; color: #fff; }
 
-        .route-btn { display: none; width: 100%; background: #4285F4; color: white; text-align: center; padding: 14px; border-radius: 10px; margin-top: 15px; font-weight: 700; text-decoration: none; font-size: 12px; }
+        /* BOTÃO DE ROTA - AZUL DESTAQUE */
+        .route-btn { 
+            display: none; width: 100%; background: #4285F4; color: white; 
+            text-align: center; padding: 14px; border-radius: 10px; 
+            margin-top: 15px; font-weight: 700; text-decoration: none; 
+            font-size: 12px; box-shadow: 0 4px 10px rgba(66,133,244,0.3);
+        }
+        
         .main-logo { position: absolute; top: 15px; right: 15px; z-index: 1000; width: 100px; }
         .dev-footer { position: absolute; bottom: 8px; right: 15px; z-index: 1000; font-size: 9px; color: rgba(255,255,255,0.4); }
         .leaflet-top.leaflet-right { margin-top: 60px !important; }
-
-        .check-container { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11px; font-weight: bold; color: #333; }
+        .check-container { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -82,10 +87,10 @@
 
         <div class="check-container">
             <input type="checkbox" id="checkLabels" checked>
-            <label for="checkLabels">Exibir Rótulos Filtrados</label>
+            <label for="checkLabels">Exibir Rótulos</label>
         </div>
         
-        <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA</a>
+        <a id="routeLink" target="_blank" class="route-btn">🚗 TRAÇAR ROTA NO GOOGLE</a>
 
         <div class="label-ui">Satélite (NDVI PURO)</div>
         <div class="btn-group">
@@ -110,7 +115,7 @@
     <script src="config.js"></script>
     <script>
         var map = L.map('map', {zoomControl: false, tap: false}).setView([-21.2, -50.4], 12);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google Hybrid'}).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {attr: 'Google'}).addTo(map);
         L.control.locate({position: 'topright'}).addTo(map);
         L.control.zoom({position: 'bottomleft'}).addTo(map);
 
@@ -146,36 +151,29 @@
             return s;
         }
 
-        // --- RÓTULOS INTELIGENTES (FILTRADOS) ---
         function updateLabels() {
             labelLayer.clearLayers();
             if (!document.getElementById('checkLabels').checked) return;
-
             const mode = document.querySelector('input[name="routeMode"]:checked').value;
             const s1 = document.getElementById('fazendaSelect').value.toUpperCase();
             const s2 = document.getElementById('fazendaDestSelect').value.toUpperCase();
 
-            let farmGroups = {};
+            let groups = {};
             vectorLayer.eachLayer(l => {
                 let name = (l.feature.properties[colFaz] || "").toString().trim();
                 let nameUP = name.toUpperCase();
-                
-                // FILTRO DE EXIBIÇÃO: Só agrupa se a fazenda estiver ativa no filtro atual
-                let deveMostrar = false;
-                if (mode === 'txt' && listaFiltroTxt.includes(nameUP)) deveMostrar = true;
-                else if (mode !== 'txt' && s1 !== "" && (nameUP === s1 || nameUP === s2)) deveMostrar = true;
+                let show = false;
+                if (mode === 'txt' && listaFiltroTxt.includes(nameUP)) show = true;
+                else if (mode !== 'txt' && s1 !== "" && (nameUP === s1 || nameUP === s2)) show = true;
 
-                if (deveMostrar) {
-                    if (!farmGroups[name]) farmGroups[name] = L.latLngBounds();
-                    farmGroups[name].extend(l.getBounds());
+                if (show) {
+                    if (!groups[name]) groups[name] = L.latLngBounds();
+                    groups[name].extend(l.getBounds());
                 }
             });
 
-            for (let name in farmGroups) {
-                let center = farmGroups[name].getCenter();
-                L.marker(center, {
-                    icon: L.divIcon({ className: 'farm-label', html: name, iconSize: null })
-                }).addTo(labelLayer);
+            for (let n in groups) {
+                L.marker(groups[n].getCenter(), { icon: L.divIcon({ className: 'farm-label', html: n, iconSize: null }) }).addTo(labelLayer);
             }
         }
 
@@ -188,43 +186,43 @@
             }
             if (vectorLayer) vectorLayer.setStyle(getStyle);
             updateLabels();
-            updateRouteBtn();
+            updateRouteUI();
         }
 
-        function updateRouteBtn() {
+        // LÓGICA DE ROTA REVISADA
+        function updateRouteUI() {
             const mode = document.querySelector('input[name="routeMode"]:checked').value;
             const s1 = document.getElementById('fazendaSelect').value;
             const s2 = document.getElementById('fazendaDestSelect').value;
             const btn = document.getElementById('routeLink');
 
-            if (mode === 'atual' && s1 !== "") {
-                let b = L.latLngBounds();
-                vectorLayer.eachLayer(l => { if(l.feature.properties[colFaz].toUpperCase() === s1.toUpperCase()) b.extend(l.getBounds()); });
-                const c = b.getCenter();
-                btn.href = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
-                btn.style.display = 'block';
-                map.fitBounds(b, {padding:[40,40]});
-            } else if (mode === 'farms' && s1 !== "" && s2 !== "") {
-                let b1 = L.latLngBounds(), b2 = L.latLngBounds();
-                vectorLayer.eachLayer(l => {
-                    let n = l.feature.properties[colFaz].toUpperCase();
-                    if(n === s1.toUpperCase()) b1.extend(l.getBounds());
-                    if(n === s2.toUpperCase()) b2.extend(l.getBounds());
-                });
-                const c1 = b1.getCenter(), c2 = b2.getCenter();
-                btn.href = `https://www.google.com/maps/dir/?api=1&origin=${c1.lat},${c1.lng}&destination=${c2.lat},${c2.lng}`;
-                btn.style.display = 'block';
-                map.fitBounds(b1.extend(b2), {padding:[50,50]});
+            if (mode === 'txt') { btn.style.display = 'none'; return; }
+
+            if (s1 !== "") {
+                let b1 = L.latLngBounds();
+                vectorLayer.eachLayer(l => { if(l.feature.properties[colFaz].toUpperCase() === s1.toUpperCase()) b1.extend(l.getBounds()); });
+                
+                if (mode === 'atual') {
+                    const c = b1.getCenter();
+                    btn.href = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+                    btn.style.display = 'block';
+                    map.fitBounds(b1, {padding:[40,40]});
+                } else if (mode === 'farms' && s2 !== "") {
+                    let b2 = L.latLngBounds();
+                    vectorLayer.eachLayer(l => { if(l.feature.properties[colFaz].toUpperCase() === s2.toUpperCase()) b2.extend(l.getBounds()); });
+                    const c1 = b1.getCenter(), c2 = b2.getCenter();
+                    btn.href = `https://www.google.com/maps/dir/?api=1&origin=${c1.lat},${c1.lng}&destination=${c2.lat},${c2.lng}`;
+                    btn.style.display = 'block';
+                    map.fitBounds(b1.extend(b2), {padding:[50,50]});
+                } else { btn.style.display = 'none'; }
             } else { btn.style.display = 'none'; }
         }
 
-        // --- INTERFACE ---
         document.querySelectorAll('input[name="routeMode"]').forEach(r => r.onchange = () => {
             const m = document.querySelector('input[name="routeMode"]:checked').value;
             document.getElementById('dest-box').style.display = (m === 'farms') ? 'block' : 'none';
             document.getElementById('txt-box').style.display = (m === 'txt') ? 'block' : 'none';
             document.getElementById('selector-box').style.display = (m === 'txt') ? 'none' : 'block';
-            listaFiltroTxt = [];
             refresh();
         });
 
@@ -242,11 +240,9 @@
             reader.readAsText(e.target.files[0]);
         };
 
-        document.getElementById('checkLabels').onchange = updateLabels;
-
         if (typeof talhoesData !== 'undefined') {
             const ks = Object.keys(talhoesData.features[0].properties);
-            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ", "COD_FAZ"].includes(k.toUpperCase())) || ks[0];
+            colFaz = ks.find(k => ["FAZENDA", "NOME_FAZ", "DESC_FAZ"].includes(k.toUpperCase())) || ks[0];
             let ns = [...new Set(talhoesData.features.map(f => (f.properties[colFaz] || "").toString().trim()))].sort();
             ns.forEach(n => {
                 if(n){
@@ -265,6 +261,7 @@
         
         document.getElementById('fazendaSelect').onchange = refresh;
         document.getElementById('fazendaDestSelect').onchange = refresh;
+        document.getElementById('checkLabels').onchange = updateLabels;
         document.querySelectorAll('input[name="viewMode"]').forEach(r => r.onchange = refresh);
         ds.onchange = refresh;
         refresh();
